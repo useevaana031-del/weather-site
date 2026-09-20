@@ -22,15 +22,12 @@
         to   { opacity: 1; transform: translate3d(0, 0, 0); }
     }
     @keyframes pulseOnce {
-        0%   { transform: scale(1); }
-        40%  { transform: scale(1.04); }
+        0% { transform: scale(1); }
+        40% { transform: scale(1.04); }
         100% { transform: scale(1); }
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes barGrow {
-        from { transform: scaleX(0); }
-        to   { transform: scaleX(1); }
-    }
+    @keyframes barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
     body {
         min-height: 100vh;
@@ -39,16 +36,13 @@
         animation: bgShift 40s ease infinite;
         color: #f5f7fa;
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
+        display: flex; justify-content: center; align-items: flex-start;
         padding: 24px 16px 60px;
         overflow-x: hidden;
     }
 
     .container {
-        width: 100%;
-        max-width: 680px;
+        width: 100%; max-width: 680px;
         background: rgba(255,255,255,0.045);
         border: 1px solid rgba(255,255,255,0.09);
         border-radius: 28px;
@@ -102,12 +96,16 @@
     .current:hover { border-color: rgba(94,184,255,0.30); box-shadow: 0 12px 40px -12px rgba(94,184,255,0.25); }
     .current.bump { animation: pulseOnce 0.6s cubic-bezier(0.16,1,0.3,1); }
     .current-left { display: flex; align-items: center; gap: 18px; }
-    .current-icon { font-size: 72px; line-height: 1; transition: transform 0.5s cubic-bezier(0.16,1,0.3,1); display: inline-block; }
-    .current-icon.flip { transform: scale(1.15) rotate(-6deg); }
+    .current-icon {
+        width: 72px; height: 72px;
+        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .current-icon svg { width: 100%; height: 100%; display: block; }
     .current-temp { font-size: 56px; font-weight: 200; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
     .current-desc { font-size: 14px; color: #c5cdd9; margin-top: 6px; }
     .current-right { display: grid; gap: 9px; font-size: 12.5px; color: #8b95a8; min-width: 175px; }
-    .current-right .row { display: flex; justify-content: space-between; gap: 16px; transition: color 0.2s ease; }
+    .current-right .row { display: flex; justify-content: space-between; gap: 16px; }
     .current-right .row span:last-child { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
 
     .models-row { font-size: 11px; color: #5e6b85; text-align: center; margin-bottom: 20px; padding: 0 4px; min-height: 14px; font-variant-numeric: tabular-nums; }
@@ -130,10 +128,14 @@
         contain: layout style;
     }
     .hour-item:hover { background: rgba(255,255,255,0.05); transform: translate3d(0, -3px, 0); }
-    .hour-item.now { background: rgba(94,184,255,0.14); border: 1px solid rgba(94,184,255,0.25); box-shadow: 0 6px 20px -8px rgba(94,184,255,0.5); }
+    .hour-item.now { background: rgba(94,184,255,0.14); border: 1px solid rgba(94,184,255,0.25); }
     .hour-item .h-time { font-size: 11.5px; color: #8b95a8; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
     .hour-item.now .h-time { color: #5eb8ff; font-weight: 700; }
-    .hour-item .h-icon { font-size: 22px; margin-bottom: 6px; display: block; min-height: 26px; line-height: 26px; }
+    .hour-item .h-icon {
+        width: 26px; height: 26px; margin: 0 auto 6px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .hour-item .h-icon svg { width: 100%; height: 100%; display: block; }
     .hour-item .h-temp { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
     .hour-item .h-rain { font-size: 10px; color: #5eb8ff; margin-top: 2px; font-variant-numeric: tabular-nums; }
 
@@ -142,15 +144,18 @@
         display: grid; grid-template-columns: 100px 38px 1fr 60px 76px;
         align-items: center; padding: 13px 0;
         border-bottom: 1px solid rgba(255,255,255,0.04); gap: 10px; font-size: 13.5px;
-        transition: background 0.2s ease, transform 0.2s ease;
         animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both;
         contain: layout style;
     }
-    .day-row:hover { background: rgba(94,184,255,0.04); transform: translateX(2px); }
+    .day-row:hover { background: rgba(94,184,255,0.04); }
     .day-row:last-child { border-bottom: none; }
     .day-name { color: #c5cdd9; }
     .day-name.today { color: #5eb8ff; font-weight: 700; }
-    .day-icon { font-size: 22px; text-align: center; min-height: 26px; line-height: 26px; }
+    .day-icon {
+        width: 26px; height: 26px; margin: 0 auto;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .day-icon svg { width: 100%; height: 100%; display: block; }
     .day-desc { color: #8b95a8; font-size: 12.5px; }
     .day-rain { color: #5eb8ff; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
     .day-temp { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -164,24 +169,21 @@
     .fishing-header b { color: #d5dde8; font-weight: 600; }
     .fishing-conditions { font-size: 12px; color: #8b95a8; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-variant-numeric: tabular-nums; }
     .fishing-conditions span { color: #fff; font-weight: 600; }
-    .fish-item { display: grid; grid-template-columns: 130px 1fr 38px; align-items: center; gap: 12px; padding: 5px 0; font-size: 12.5px; animation: fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) both; contain: layout style; }
+    .fish-item { display: grid; grid-template-columns: 130px 1fr 38px; align-items: center; gap: 12px; padding: 5px 0; font-size: 12.5px; contain: layout style; }
     .fish-name { color: #c5cdd9; }
     .fish-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
-    .fish-bar-fill { height: 100%; border-radius: 3px; transform-origin: left center; animation: barGrow 0.7s cubic-bezier(0.16,1,0.3,1) both; will-change: transform; }
+    .fish-bar-fill { height: 100%; border-radius: 3px; transform-origin: left center; transition: transform 0.6s cubic-bezier(0.16,1,0.3,1); }
     .fish-score { text-align: right; font-weight: 700; font-size: 12px; color: #fff; font-variant-numeric: tabular-nums; }
 
     .loading { text-align: center; color: #8b95a8; padding: 20px; font-size: 13px; }
-
-    .error-box { background: rgba(255,100,100,0.08); border: 1px solid rgba(255,100,100,0.2); color: #ff9a9a; padding: 14px 16px; border-radius: 14px; text-align: center; margin-bottom: 18px; font-size: 13px; animation: fadeUp 0.4s ease; }
-    .note-box { background: rgba(255,184,74,0.08); border: 1px solid rgba(255,184,74,0.2); color: #ffcc7a; padding: 10px 14px; border-radius: 12px; text-align: center; margin-bottom: 14px; font-size: 12.5px; animation: fadeUp 0.4s ease; }
+    .error-box { background: rgba(255,100,100,0.08); border: 1px solid rgba(255,100,100,0.2); color: #ff9a9a; padding: 14px 16px; border-radius: 14px; text-align: center; margin-bottom: 18px; font-size: 13px; }
+    .note-box { background: rgba(255,184,74,0.08); border: 1px solid rgba(255,184,74,0.2); color: #ffcc7a; padding: 10px 14px; border-radius: 12px; text-align: center; margin-bottom: 14px; font-size: 12.5px; }
 
     @media (max-width: 768px), (pointer: coarse) {
         body {
             animation: none;
             background: radial-gradient(ellipse at top, #1a2440 0%, #0a0e1a 60%, #050810 100%);
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-attachment: scroll;
+            background-size: 100% 100%; background-repeat: no-repeat; background-attachment: scroll;
         }
         .container {
             backdrop-filter: none; -webkit-backdrop-filter: none;
@@ -190,16 +192,14 @@
             animation-duration: 0.35s; border-radius: 24px;
         }
         .current:hover { box-shadow: none; border-color: rgba(94,184,255,0.15); }
-        .current-icon { transition: none; }
-        .current-icon.flip { transform: none; }
-        .hour-item, .day-row, .fish-item { animation-duration: 0.25s; }
+        .hour-item, .day-row, .fish-item { animation: none; }
         body { padding: 14px 10px 40px; }
         .container { padding: 22px 18px; border-radius: 24px; }
         h1 { font-size: 22px; }
         .clock { font-size: 19px; }
         .current { flex-direction: column; text-align: center; padding: 20px; }
         .current-left { flex-direction: column; gap: 8px; }
-        .current-icon { font-size: 62px; }
+        .current-icon { width: 62px; height: 62px; }
         .current-temp { font-size: 50px; }
         .current-right { width: 100%; text-align: left; }
         .day-row { grid-template-columns: 76px 30px 1fr 52px; font-size: 12.5px; gap: 6px; }
@@ -244,7 +244,7 @@
 
     <div class="current" id="currentCard">
         <div class="current-left">
-            <div class="current-icon" id="currentIcon">☁</div>
+            <div class="current-icon" id="currentIcon"></div>
             <div>
                 <div class="current-temp" id="currentTemp">--</div>
                 <div class="current-desc" id="currentDesc">Загрузка...</div>
@@ -277,10 +277,11 @@ var SPB_LAT = 59.9386;
 var SPB_LON = 30.3141;
 var lat = SPB_LAT;
 var lon = SPB_LON;
-var CACHE_KEY = 'weather_cache_v10';
+var CACHE_KEY = 'weather_cache_v12';
 var USER_CITY_KEY = 'user_city';
 var USER_LAT_KEY = 'user_lat';
 var USER_LON_KEY = 'user_lon';
+var GEO_CACHE_PREFIX = 'geo_';
 var API_REFRESH_MS = 10 * 60 * 1000;
 var UI_TICK_MS = 30 * 1000;
 var REQUEST_TIMEOUT_MS = 12000;
@@ -339,14 +340,12 @@ function updateClock() {
     var d = new Date();
     document.getElementById('clock').textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
 }
-
 function updateDate() {
     var now = new Date();
     var days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
     var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
     document.getElementById('currentDate').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
 }
-
 function updateLastUpdated() {
     var el = document.getElementById('lastUpdated');
     if (!lastUpdateMs) { el.textContent = ''; return; }
@@ -358,7 +357,6 @@ function updateLastUpdated() {
     else txt = Math.round(sec / 3600) + ' ч назад';
     el.textContent = 'Обновлено ' + txt;
 }
-
 function updateCoords() {
     if (Math.abs(lat - SPB_LAT) < 0.01 && Math.abs(lon - SPB_LON) < 0.01) coordsEl.textContent = '';
     else coordsEl.textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
@@ -386,7 +384,6 @@ function saveCache(data, source) {
         }));
     } catch (e) {}
 }
-
 function loadCache() {
     try {
         var raw = localStorage.getItem(CACHE_KEY);
@@ -401,158 +398,86 @@ function loadCache() {
     } catch (e) { return null; }
 }
 
-// ===== ГЕОЛОКАЦИЯ =====
-function saveUserLocation(city) {
-    try {
-        localStorage.setItem(USER_CITY_KEY, city);
-        localStorage.setItem(USER_LAT_KEY, String(lat));
-        localStorage.setItem(USER_LON_KEY, String(lon));
-    } catch (e) {}
-}
-
-function initLocation() {
-    try {
-        var savedCity = localStorage.getItem(USER_CITY_KEY);
-        var savedLat = localStorage.getItem(USER_LAT_KEY);
-        var savedLon = localStorage.getItem(USER_LON_KEY);
-        if (savedCity && savedLat && savedLon) {
-            var la = parseFloat(savedLat);
-            var lo = parseFloat(savedLon);
-            if (isNaN(la) || isNaN(lo)) return false;
-            lat = la; lon = lo;
-            cityNameEl.textContent = savedCity;
-            updateCoords();
-            return true;
-        }
-    } catch (e) {}
-    return false;
-}
-
-function distanceKm(lat1, lon1, lat2, lon2) {
-    var R = 6371;
-    var dLat = (lat2 - lat1) * Math.PI / 180;
-    var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function determineCityName(callback) {
-    var distToSPb = distanceKm(lat, lon, SPB_LAT, SPB_LON);
-    if (distToSPb < 15) {
-        cityNameEl.textContent = 'Санкт-Петербург';
-        saveUserLocation('Санкт-Петербург');
-        if (callback) callback();
-        return;
+// ===== SVG ИКОНКИ =====
+function weatherSvg(code) {
+    code = toCode(code);
+    var head = '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">';
+    var tail = '</svg>';
+    if (code === 0) {
+        return head + '<circle cx="16" cy="16" r="7" fill="#ffce54"/>'
+            + '<g stroke="#ffce54" stroke-width="2" stroke-linecap="round">'
+            + '<path d="M16 3v3M16 26v3M3 16h3M26 16h3M6.8 6.8l2.1 2.1M23.1 23.1l2.1 2.1M6.8 25.2l2.1-2.1M23.1 8.9l2.1-2.1"/>'
+            + '</g>' + tail;
     }
-    var myToken = requestToken;
-    var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat
-        + '&lon=' + lon + '&zoom=18&addressdetails=1&accept-language=ru';
-    fetchWithTimeout(url, 6000)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (myToken !== requestToken) { if (callback) callback(); return; }
-            var found = false;
-            if (data && data.address) {
-                var addr = data.address;
-                var city = addr.city || addr.town || addr.village || addr.municipality
-                    || addr.city_district || addr.county || addr.state;
-                if (city) {
-                    cityNameEl.textContent = city;
-                    saveUserLocation(city);
-                    found = true;
-                }
-            }
-            if (!found) {
-                cityNameEl.textContent = 'Моё местоположение';
-                saveUserLocation('Моё местоположение');
-            }
-            if (callback) callback();
-        })
-        .catch(function() {
-            cityNameEl.textContent = 'Моё местоположение';
-            if (callback) callback();
-        });
+    if (code === 1) {
+        return head + '<circle cx="11" cy="11" r="5.5" fill="#ffce54"/>'
+            + '<g stroke="#ffce54" stroke-width="1.8" stroke-linecap="round">'
+            + '<path d="M11 2v2.5M11 17.5V20M2 11h2.5M17.5 11H20M4.7 4.7l1.8 1.8M15.5 15.5l1.8 1.8M4.7 17.3l1.8-1.8M15.5 6.5l1.8-1.8"/>'
+            + '</g>'
+            + '<path d="M14 24a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5.5a4.5 4.5 0 0 1-4.5-4.5c0-2 1.3-3.8 3.2-4.4A5 5 0 0 1 14 24z" fill="#b8c5d6"/>'
+            + tail;
+    }
+    if (code === 2) {
+        return head + '<circle cx="12" cy="11" r="5" fill="#ffce54"/>'
+            + '<g stroke="#ffce54" stroke-width="1.6" stroke-linecap="round">'
+            + '<path d="M12 2v2.5M12 17.5V20M3 11h2.5M18.5 11H21M5.4 5.4l1.7 1.7M16.9 16.9l1.7 1.7M5.4 16.6l1.7-1.7M16.9 5.1l1.7-1.7"/>'
+            + '</g>'
+            + '<path d="M17 25.5a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-6.5a4.5 4.5 0 0 1-4.5-4.5c0-2 1.3-3.7 3.2-4.3a5 5 0 0 1 2.8-1.2z" fill="#b8c5d6"/>'
+            + tail;
+    }
+    if (code === 3) {
+        return head + '<path d="M9 22a5.5 5.5 0 0 1 5.5-5.5A5.5 5.5 0 0 1 20 22c0 3-2.5 5.5-5.5 5.5h-5A4.5 4.5 0 0 1 5 23c0-2 1.3-3.7 3.1-4.4A5.5 5.5 0 0 1 9 22z" fill="#b8c5d6"/>'
+            + '<path d="M17 12a4.5 4.5 0 0 1 4.5-4.5A4.5 4.5 0 0 1 26 12a4.5 4.5 0 0 1-4.5 4.5h-4A4.5 4.5 0 0 1 13 12" fill="#8a9ab0"/>'
+            + tail;
+    }
+    if (code === 45 || code === 48) {
+        return head + '<g stroke="#b8c5d6" stroke-width="2.5" stroke-linecap="round">'
+            + '<path d="M5 11h22M8 16h16M5 21h22M8 26h16"/>'
+            + '</g>' + tail;
+    }
+    if (code >= 51 && code <= 57) {
+        return head + '<path d="M8.5 19a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5a4.5 4.5 0 0 1-4.5-4.5c0-1.9 1.3-3.6 3-4.3A5 5 0 0 1 8.5 19z" fill="#b8c5d6"/>'
+            + '<g stroke="#5eb8ff" stroke-width="1.8" stroke-linecap="round">'
+            + '<path d="M12 27l-0.7 1.5M17 27l-0.7 1.5M22 27l-0.7 1.5"/>'
+            + '</g>' + tail;
+    }
+    if (code >= 61 && code <= 67) {
+        return head + '<path d="M8.5 18a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5a4.5 4.5 0 0 1-4.5-4.5c0-1.9 1.3-3.6 3-4.3A5 5 0 0 1 8.5 18z" fill="#b8c5d6"/>'
+            + '<g stroke="#5eb8ff" stroke-width="2" stroke-linecap="round">'
+            + '<path d="M11 26l-1.3 3M16 26l-1.3 3M21 26l-1.3 3"/>'
+            + '</g>' + tail;
+    }
+    if (code >= 71 && code <= 77) {
+        return head + '<path d="M8.5 17a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5a4.5 4.5 0 0 1-4.5-4.5c0-1.9 1.3-3.6 3-4.3A5 5 0 0 1 8.5 17z" fill="#b8c5d6"/>'
+            + '<g fill="#5eb8ff">'
+            + '<circle cx="11" cy="26" r="1.3"/><circle cx="16" cy="27" r="1.3"/><circle cx="21" cy="26" r="1.3"/>'
+            + '<circle cx="13" cy="29.5" r="1.3"/><circle cx="19" cy="29.5" r="1.3"/>'
+            + '</g>' + tail;
+    }
+    if (code >= 80 && code <= 82) {
+        return head + '<path d="M8.5 18a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5a4.5 4.5 0 0 1-4.5-4.5c0-1.9 1.3-3.6 3-4.3A5 5 0 0 1 8.5 18z" fill="#8a9ab0"/>'
+            + '<g stroke="#5eb8ff" stroke-width="2" stroke-linecap="round">'
+            + '<path d="M10 26l-1.8 3.5M16 26l-1.8 3.5M22 26l-1.8 3.5"/>'
+            + '</g>' + tail;
+    }
+    if (code >= 85 && code <= 86) {
+        return head + '<path d="M8.5 17a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5a4.5 4.5 0 0 1-4.5-4.5c0-1.9 1.3-3.6 3-4.3A5 5 0 0 1 8.5 17z" fill="#8a9ab0"/>'
+            + '<g fill="#5eb8ff">'
+            + '<circle cx="10" cy="26" r="1.3"/><circle cx="16" cy="27.5" r="1.3"/><circle cx="22" cy="26" r="1.3"/>'
+            + '</g>' + tail;
+    }
+    if (code >= 95) {
+        return head + '<path d="M8.5 18a5 5 0 0 1 5-5 5 5 0 0 1 5 5c0 2.8-2.2 5-5 5h-5a4.5 4.5 0 0 1-4.5-4.5c0-1.9 1.3-3.6 3-4.3A5 5 0 0 1 8.5 18z" fill="#6b7a94"/>'
+            + '<path d="M15 23l-3.5 6h3.5l-1.5 5 5-7h-3.5l2-4z" fill="#ffce54"/>'
+            + tail;
+    }
+    return head + '<path d="M9 21a5.5 5.5 0 0 1 5.5-5.5A5.5 5.5 0 0 1 20 21c0 3-2.5 5.5-5.5 5.5h-5A4.5 4.5 0 0 1 5 22c0-2 1.3-3.7 3.1-4.4A5.5 5.5 0 0 1 9 21z" fill="#b8c5d6"/>' + tail;
 }
 
-function requestLocationQuick() {
-    if (!navigator.geolocation) { resetToSPB(); return; }
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            lat = pos.coords.latitude;
-            lon = pos.coords.longitude;
-            updateCoords();
-            determineCityName(function() { loadWeather(true); });
-        },
-        function(err) {
-            console.warn('Быстрая геолокация не удалась:', err.message);
-            requestLocationPrecise();
-        },
-        { enableHighAccuracy: false, timeout: 6000, maximumAge: 5 * 60 * 1000 }
-    );
-}
-
-function requestLocationPrecise() {
-    if (!navigator.geolocation) { resetToSPB(); return; }
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            lat = pos.coords.latitude;
-            lon = pos.coords.longitude;
-            updateCoords();
-            determineCityName(function() {
-                loadWeather(true);
-                console.log('Точные координаты применены:', lat.toFixed(5), lon.toFixed(5));
-            });
-        },
-        function(err) {
-            console.warn('Точная геолокация не удалась:', err.message);
-            var txt = cityNameEl.textContent;
-            if (!txt || txt === 'Определяю...' || txt === 'Моё местоположение') resetToSPB();
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-}
-
-function detectLocation() {
-    cityNameEl.textContent = 'Определяю...';
-    coordsEl.textContent = '';
-    requestLocationQuick();
-    setTimeout(function() {
-        if (cityNameEl.textContent === 'Определяю...' || cityNameEl.textContent === 'Моё местоположение') return;
-        requestLocationPrecise();
-    }, 2500);
-}
-
-function resetToSPB() {
-    requestToken++;
-    lat = SPB_LAT;
-    lon = SPB_LON;
-    cityNameEl.textContent = 'Санкт-Петербург';
-    saveUserLocation('Санкт-Петербург');
-    updateCoords();
-    loadWeather(true);
-}
-
-// ===== ИКОНКИ =====
 function toCode(v) {
     var n = Number(v);
     if (isNaN(n) || !isFinite(n)) return -1;
     return Math.round(n);
-}
-
-function getWeatherIcon(code) {
-    code = toCode(code);
-    if (code === 0) return '☀';
-    if (code === 1) return '🌤';
-    if (code === 2) return '⛅';
-    if (code === 3) return '☁';
-    if (code === 45 || code === 48) return '🌫';
-    if (code >= 51 && code <= 57) return '🌦';
-    if (code >= 61 && code <= 67) return '🌧';
-    if (code >= 71 && code <= 77) return '❄';
-    if (code >= 80 && code <= 82) return '🌧';
-    if (code >= 85 && code <= 86) return '❄';
-    if (code >= 95) return '⛈';
-    return '☁';
 }
 
 function getWeatherDesc(code) {
@@ -597,21 +522,127 @@ function codeSeverityNum(code) {
     return 3;
 }
 
-// Коррекция кода по температуре — убирает бред
 function correctCodeByTemp(code, temp) {
     if (!isNum(temp)) return code;
-    // Если снег, а на улице плюс больше 5° → дождь
-    if (temp > 5 && ((code >= 71 && code <= 77) || (code >= 85 && code <= 86))) {
-        if (code === 71 || code === 73 || code === 75 || code === 77) return 61;
-        if (code === 85 || code === 86) return 80;
+    if (temp > 3 && ((code >= 71 && code <= 77) || (code >= 85 && code <= 86))) {
+        if (code >= 71 && code <= 77) return 61;
+        return 80;
     }
-    // Если дождь, а на улице минус → снег
     if (temp < 0 && ((code >= 51 && code <= 67) || (code >= 80 && code <= 82))) {
         if (code >= 51 && code <= 57) return 71;
         if (code >= 61 && code <= 67) return 73;
-        if (code >= 80 && code <= 82) return 75;
+        return 75;
     }
     return code;
+}
+
+// ===== ГЕОЛОКАЦИЯ =====
+function saveUserLocation(city) {
+    try {
+        localStorage.setItem(USER_CITY_KEY, city);
+        localStorage.setItem(USER_LAT_KEY, String(lat));
+        localStorage.setItem(USER_LON_KEY, String(lon));
+    } catch (e) {}
+}
+function initLocation() {
+    try {
+        var savedCity = localStorage.getItem(USER_CITY_KEY);
+        var savedLat = localStorage.getItem(USER_LAT_KEY);
+        var savedLon = localStorage.getItem(USER_LON_KEY);
+        if (savedCity && savedLat && savedLon) {
+            var la = parseFloat(savedLat), lo = parseFloat(savedLon);
+            if (isNaN(la) || isNaN(lo)) return false;
+            lat = la; lon = lo;
+            cityNameEl.textContent = savedCity;
+            updateCoords();
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+function distanceKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Быстрое определение имени города — с кэшем на 24ч
+function reverseGeocode(la, lo, callback) {
+    var cacheKey = GEO_CACHE_PREFIX + la.toFixed(3) + '_' + lo.toFixed(3);
+    try {
+        var cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            var parsed = JSON.parse(cached);
+            if (parsed && parsed.name && Date.now() - parsed.ts < 24 * 3600 * 1000) {
+                callback(parsed.name);
+                return;
+            }
+        }
+    } catch (e) {}
+
+    // Сначала проверяем, не СПб ли это
+    if (distanceKm(la, lo, SPB_LAT, SPB_LON) < 15) {
+        try { localStorage.setItem(cacheKey, JSON.stringify({name: 'Санкт-Петербург', ts: Date.now()})); } catch (e) {}
+        callback('Санкт-Петербург');
+        return;
+    }
+
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + la
+        + '&lon=' + lo + '&zoom=10&accept-language=ru';
+    fetchWithTimeout(url, 4000)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var name = 'Моё местоположение';
+            if (data && data.address) {
+                var a = data.address;
+                name = a.city || a.town || a.village || a.municipality || a.county || a.state || name;
+            }
+            try { localStorage.setItem(cacheKey, JSON.stringify({name: name, ts: Date.now()})); } catch (e) {}
+            callback(name);
+        })
+        .catch(function() { callback('Моё местоположение'); });
+}
+
+function detectLocation() {
+    if (!navigator.geolocation) { alert('Геолокация не поддерживается'); return; }
+    cityNameEl.textContent = 'Определяю...';
+    coordsEl.textContent = '';
+
+    // ОДИН запрос GPS, высокая точность
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            lat = pos.coords.latitude;
+            lon = pos.coords.longitude;
+            updateCoords();
+            saveUserLocation('Моё местоположение');
+
+            // Погода — сразу, как получили координаты
+            loadWeather(true);
+
+            // Имя города — параллельно, не блокирует погоду
+            reverseGeocode(lat, lon, function(name) {
+                cityNameEl.textContent = name;
+                saveUserLocation(name);
+            });
+        },
+        function(err) {
+            console.warn('Геолокация:', err.message);
+            alert('Не удалось определить. Показываю СПб.');
+            resetToSPB();
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+}
+
+function resetToSPB() {
+    requestToken++;
+    lat = SPB_LAT; lon = SPB_LON;
+    cityNameEl.textContent = 'Санкт-Петербург';
+    saveUserLocation('Санкт-Петербург');
+    updateCoords();
+    loadWeather(true);
 }
 
 // ===== OPEN-METEO =====
@@ -620,8 +651,6 @@ function normalizeOpenMeteo(d) {
     var hTemp = (d.hourly && d.hourly.temperature_2m) || [];
     var hCode = (d.hourly && d.hourly.weather_code) || [];
     var hRain = (d.hourly && d.hourly.precipitation_probability) || [];
-    var hPress = (d.hourly && d.hourly.pressure_msl) || [];
-
     var dTime = (d.daily && d.daily.time) || [];
     var dCode = (d.daily && d.daily.weather_code) || [];
     var dMax = (d.daily && d.daily.temperature_2m_max) || [];
@@ -644,19 +673,19 @@ function normalizeOpenMeteo(d) {
             }
             fMax.push(dMaxV === -Infinity ? null : dMaxV);
             fMin.push(dMinV === Infinity ? null : dMinV);
-            fRain.push(dRainV);
-            fCode.push(dCodeV);
+            fRain.push(dRainV); fCode.push(dCodeV);
         }
         dMax = fMax; dMin = fMin; dRain = fRain;
         if (!dCode.length) dCode = fCode;
     }
 
+    var curTemp = d.current.temperature_2m;
     return {
         current: {
             time: d.current.time,
-            temp: d.current.temperature_2m,
+            temp: curTemp,
             feels: d.current.apparent_temperature,
-            code: correctCodeByTemp(d.current.weather_code, d.current.temperature_2m),
+            code: correctCodeByTemp(d.current.weather_code, curTemp),
             humidity: d.current.relative_humidity_2m,
             wind: d.current.wind_speed_10m,
             pressure: d.current.pressure_msl,
@@ -666,8 +695,7 @@ function normalizeOpenMeteo(d) {
             return {
                 time: t, temp: hTemp[i],
                 code: correctCodeByTemp(hCode[i], hTemp[i]),
-                rain: isNum(hRain[i]) ? hRain[i] : 0,
-                pressure: isNum(hPress[i]) ? hPress[i] : null
+                rain: isNum(hRain[i]) ? hRain[i] : 0
             };
         }),
         daily: dTime.map(function(t, i) {
@@ -684,11 +712,12 @@ function normalizeOpenMeteo(d) {
 }
 
 async function fetchModel(modelName) {
+    // forecast_hours=49 — только то, что нужно (вместо 168 часов)
     var base = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
         + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,uv_index'
-        + '&hourly=temperature_2m,weather_code,precipitation_probability,pressure_msl'
+        + '&hourly=temperature_2m,weather_code,precipitation_probability'
         + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'
-        + '&timezone=auto&forecast_days=7&elevation=auto';
+        + '&timezone=auto&forecast_days=7&forecast_hours=49';
     if (modelName && modelName !== 'best_match') base += '&models=' + modelName;
     var res = await fetchWithTimeout(base, REQUEST_TIMEOUT_MS);
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -708,7 +737,7 @@ async function fetchFromOpenMeteo(preferredModel) {
     };
 }
 
-// ===== WTTR.IN (ТОЧНЫЙ МАППИНГ WWO → WMO) =====
+// ===== WTTR.IN =====
 function parseWttrTime(s) {
     if (!s) return '06:00';
     s = String(s).trim();
@@ -720,75 +749,62 @@ function parseWttrTime(s) {
     if (!isPM && h === 12) h = 0;
     return pad2(h) + ':' + m[2];
 }
-
 function wttrTimeToISO(t) {
     var n = parseInt(t, 10);
     if (isNaN(n)) return '00:00';
     return pad2(Math.floor(n / 100)) + ':00';
 }
-
 function wmoFromWttr(code) {
     var c = parseInt(code, 10);
     if (isNaN(c)) return 3;
-    // === Ясно / Облачность ===
-    if (c === 113) return 0;        // Sunny
-    if (c === 116) return 2;        // Partly cloudy
-    if (c === 119) return 3;        // Cloudy
-    if (c === 122) return 3;        // Overcast
-    // === Туман ===
-    if (c === 143) return 45;       // Mist
-    if (c === 248) return 45;       // Fog
-    if (c === 260) return 48;       // Freezing fog
-    // === Изморозь / Морозный дождь ===
-    if (c === 185) return 56;       // Freezing drizzle
-    if (c === 281) return 56;       // Freezing drizzle
-    if (c === 284) return 57;       // Heavy freezing drizzle
-    if (c === 311) return 56;       // Light freezing rain
-    if (c === 314) return 57;       // Heavy freezing rain
-    // === Мелкий дождь ===
-    if (c === 263) return 51;       // Patchy light drizzle
-    if (c === 266) return 51;       // Light drizzle
-    // === Дождь ===
-    if (c === 176) return 61;       // Patchy rain nearby
-    if (c === 293) return 61;       // Patchy light rain
-    if (c === 296) return 61;       // Light rain
-    if (c === 299) return 63;       // Moderate rain at times
-    if (c === 302) return 63;       // Moderate rain
-    if (c === 305) return 65;       // Heavy rain at times
-    if (c === 308) return 65;       // Heavy rain
-    // === Мокрый снег ===
-    if (c === 182) return 68;       // Patchy sleet nearby
-    if (c === 317) return 68;       // Light sleet
-    if (c === 320) return 68;       // Moderate or heavy sleet
-    // === Снег ===
-    if (c === 179) return 71;       // Patchy snow nearby
-    if (c === 227) return 71;       // Blowing snow
-    if (c === 230) return 75;       // Blizzard
-    if (c === 323) return 71;       // Patchy light snow
-    if (c === 326) return 71;       // Light snow
-    if (c === 329) return 73;       // Patchy moderate snow
-    if (c === 332) return 73;       // Moderate snow
-    if (c === 335) return 75;       // Patchy heavy snow
-    if (c === 338) return 75;       // Heavy snow
-    // === Крупа ===
-    if (c === 350) return 77;       // Ice pellets
-    if (c === 374) return 77;       // Light showers of ice pellets
-    if (c === 377) return 77;       // Moderate/heavy showers of ice pellets
-    // === Ливень ===
-    if (c === 353) return 80;       // Light rain shower
-    if (c === 356) return 81;       // Moderate/heavy rain shower
-    if (c === 359) return 82;       // Torrential rain shower
-    // === Снежный ливень ===
-    if (c === 362) return 85;       // Light sleet showers
-    if (c === 365) return 86;       // Moderate/heavy sleet showers
-    if (c === 368) return 85;       // Light snow showers
-    if (c === 371) return 86;       // Moderate/heavy snow showers
-    // === Гроза ===
-    if (c === 200) return 95;       // Thundery outbreaks
-    if (c === 386) return 95;       // Patchy light rain with thunder
-    if (c === 389) return 96;       // Moderate/heavy rain with thunder
-    if (c === 392) return 95;       // Patchy light snow with thunder
-    if (c === 395) return 96;       // Moderate/heavy snow with thunder
+    if (c === 113) return 0;
+    if (c === 116) return 2;
+    if (c === 119) return 3;
+    if (c === 122) return 3;
+    if (c === 143) return 45;
+    if (c === 248) return 45;
+    if (c === 260) return 48;
+    if (c === 185) return 56;
+    if (c === 281) return 56;
+    if (c === 284) return 57;
+    if (c === 311) return 56;
+    if (c === 314) return 57;
+    if (c === 263) return 51;
+    if (c === 266) return 51;
+    if (c === 176) return 61;
+    if (c === 293) return 61;
+    if (c === 296) return 61;
+    if (c === 299) return 63;
+    if (c === 302) return 63;
+    if (c === 305) return 65;
+    if (c === 308) return 65;
+    if (c === 182) return 68;
+    if (c === 317) return 68;
+    if (c === 320) return 68;
+    if (c === 179) return 71;
+    if (c === 227) return 71;
+    if (c === 230) return 75;
+    if (c === 323) return 71;
+    if (c === 326) return 71;
+    if (c === 329) return 73;
+    if (c === 332) return 73;
+    if (c === 335) return 75;
+    if (c === 338) return 75;
+    if (c === 350) return 77;
+    if (c === 374) return 77;
+    if (c === 377) return 77;
+    if (c === 353) return 80;
+    if (c === 356) return 81;
+    if (c === 359) return 82;
+    if (c === 362) return 85;
+    if (c === 365) return 86;
+    if (c === 368) return 85;
+    if (c === 371) return 86;
+    if (c === 200) return 95;
+    if (c === 386) return 95;
+    if (c === 389) return 96;
+    if (c === 392) return 95;
+    if (c === 395) return 96;
     return 3;
 }
 
@@ -796,12 +812,10 @@ function normalizeWttr(d) {
     var cur = d.current_condition[0];
     var hourly = [], daily = [];
     var weatherArr = d.weather || [];
-
     for (var day = 0; day < weatherArr.length && day < 3; day++) {
         var wd = weatherArr[day];
         var date = wd.date;
         var hours = wd.hourly || [];
-
         for (var h = 0; h < hours.length; h++) {
             var hh = hours[h];
             var hTemp = parseFloat(hh.tempC) || 0;
@@ -809,36 +823,26 @@ function normalizeWttr(d) {
             hCode = correctCodeByTemp(hCode, hTemp);
             hourly.push({
                 time: date + 'T' + wttrTimeToISO(hh.time),
-                temp: hTemp,
-                code: hCode,
-                rain: parseFloat(hh.chanceofrain || 0),
-                pressure: parseFloat(hh.pressure || 0)
+                temp: hTemp, code: hCode,
+                rain: parseFloat(hh.chanceofrain || 0)
             });
         }
-
         var astro = wd.astronomy && wd.astronomy[0] ? wd.astronomy[0] : {};
         var dMax = parseFloat(wd.maxtempC) || 0;
         var dMin = parseFloat(wd.mintempC) || 0;
-        var dAvg = (dMax + dMin) / 2;
         var dCode = wmoFromWttr(wd.hourly && wd.hourly[4] ? wd.hourly[4].weatherCode : '113');
-        dCode = correctCodeByTemp(dCode, dAvg);
-
+        dCode = correctCodeByTemp(dCode, (dMax + dMin) / 2);
         daily.push({
-            time: date,
-            code: dCode,
-            max: dMax,
-            min: dMin,
+            time: date, code: dCode, max: dMax, min: dMin,
             rain: parseFloat(wd.hourly && wd.hourly[4] ? wd.hourly[4].chanceofrain : 0),
             sunrise: date + 'T' + parseWttrTime(astro.sunrise),
             sunset: date + 'T' + parseWttrTime(astro.sunset)
         });
     }
-
     var now = new Date();
     var curTemp = parseFloat(cur.temp_C) || 0;
     var curCode = wmoFromWttr(cur.weatherCode);
     curCode = correctCodeByTemp(curCode, curTemp);
-
     return {
         current: {
             time: now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-' + pad2(now.getDate()) + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()),
@@ -850,8 +854,7 @@ function normalizeWttr(d) {
             pressure: parseFloat(cur.pressure) || 0,
             uv: parseFloat(cur.uvIndex) || 0
         },
-        hourly: hourly,
-        daily: daily
+        hourly: hourly, daily: daily
     };
 }
 
@@ -863,7 +866,7 @@ async function fetchFromWttr() {
     return { source: 'wttr.in', data: normalizeWttr(data), modelsInfo: '' };
 }
 
-// ===== ГЛАВНАЯ ЗАГРУЗКА =====
+// ===== ГЛАВНАЯ =====
 async function loadWeather(force) {
     if (!force && document.hidden) return;
     if (!force && lastUpdateMs && (Date.now() - lastUpdateMs) < 5 * 60 * 1000) { updateLastUpdated(); return; }
@@ -880,23 +883,10 @@ async function loadWeather(force) {
     var result = null;
     var userModel = document.getElementById('modelSelect').value;
 
-    if (userModel === 'best_match') {
-        try {
-            result = await fetchFromOpenMeteo('ecmwf_ifs04');
-        } catch (e) {
-            console.warn('ECMWF не ответил, переключаюсь на авто:', e.message);
-            try {
-                result = await fetchFromOpenMeteo('best_match');
-            } catch (e2) {
-                console.error('Open-Meteo упал:', e2.message);
-            }
-        }
-    } else {
-        try {
-            result = await fetchFromOpenMeteo(userModel);
-        } catch (e) {
-            console.error('Open-Meteo упал:', e.message);
-        }
+    try {
+        result = await fetchFromOpenMeteo(userModel);
+    } catch (e) {
+        console.error('Open-Meteo упал:', e.message);
     }
 
     if (myToken !== requestToken) { refreshBtn.classList.remove('spinning'); return; }
@@ -940,12 +930,7 @@ async function loadWeather(force) {
 function renderAll(data, isCached) {
     var cur = data.current;
 
-    var iconEl = document.getElementById('currentIcon');
-    iconEl.textContent = getWeatherIcon(cur.code);
-    iconEl.classList.remove('flip');
-    void iconEl.offsetWidth;
-    iconEl.classList.add('flip');
-    setTimeout(function() { iconEl.classList.remove('flip'); }, 500);
+    document.getElementById('currentIcon').innerHTML = weatherSvg(cur.code);
 
     var tempEl = document.getElementById('currentTemp');
     var targetTemp = cur.temp;
@@ -996,7 +981,7 @@ function renderHourly(data) {
         var delay = Math.min(count * 0.012, 0.4);
         html += '<div class="hour-item' + (isNow ? ' now' : '') + '" style="animation-delay:' + delay + 's">'
             + '<div class="h-time">' + (isNow ? 'Сейчас' : timeStr) + '</div>'
-            + '<span class="h-icon">' + getWeatherIcon(h.code) + '</span>'
+            + '<div class="h-icon">' + weatherSvg(h.code) + '</div>'
             + '<div class="h-temp">' + fmtNum(h.temp, '°') + '</div>'
             + '<div class="h-rain">' + fmtNum(h.rain, '%') + '</div>'
             + '</div>';
@@ -1023,7 +1008,7 @@ function renderDaily(data) {
         var delay = j * 0.05;
         html += '<div class="day-row" style="animation-delay:' + delay + 's">'
             + '<div class="day-name' + (isToday ? ' today' : '') + '">' + label + '</div>'
-            + '<div class="day-icon">' + getWeatherIcon(d.code) + '</div>'
+            + '<div class="day-icon">' + weatherSvg(d.code) + '</div>'
             + '<div class="day-desc">' + getWeatherDesc(d.code) + '</div>'
             + '<div class="day-rain">' + fmtNum(d.rain, '%') + '</div>'
             + '<div class="day-temp"><span class="min">' + fmtNum(d.min, '°') + '</span>' + fmtNum(d.max, '°') + '</div>'
@@ -1034,36 +1019,36 @@ function renderDaily(data) {
 
 // ===== КЛЁВ =====
 var FISH = [
-    { name: 'Щука',              tMin: 4,  tMax: 20, press: 'stable', windMax: 8,  active: [9,10,11,12,1,2,3] },
-    { name: 'Окунь',             tMin: 8,  tMax: 22, press: 'any',    windMax: 10, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
-    { name: 'Судак',             tMin: 10, tMax: 24, press: 'stable', windMax: 8,  active: [5,6,7,8,9,10] },
-    { name: 'Лещ',               tMin: 14, tMax: 24, press: 'stable', windMax: 6,  active: [5,6,7,8,9] },
-    { name: 'Карась',            tMin: 16, tMax: 28, press: 'any',    windMax: 5,  active: [5,6,7,8,9] },
-    { name: 'Карп',              tMin: 18, tMax: 28, press: 'stable', windMax: 5,  active: [6,7,8,9] },
-    { name: 'Плотва',            tMin: 8,  tMax: 22, press: 'any',    windMax: 8,  active: [1,2,3,4,5,6,7,8,9,10,11,12] },
-    { name: 'Краснопёрка',       tMin: 14, tMax: 24, press: 'stable', windMax: 6,  active: [6,7,8,9] },
-    { name: 'Жерех',             tMin: 12, tMax: 22, press: 'any',    windMax: 8,  active: [5,6,7,8,9,10] },
-    { name: 'Сом',               tMin: 18, tMax: 28, press: 'stable', windMax: 5,  active: [6,7,8,9] },
-    { name: 'Налим',             tMin: 0,  tMax: 10, press: 'any',    windMax: 10, active: [10,11,12,1,2,3] },
-    { name: 'Форель ручьевая',   tMin: 8,  tMax: 18, press: 'any',    windMax: 10, active: [4,5,6,9,10,11] },
-    { name: 'Форель озёрная',    tMin: 8,  tMax: 18, press: 'any',    windMax: 8,  active: [4,5,6,9,10,11] },
-    { name: 'Хариус',            tMin: 6,  tMax: 16, press: 'any',    windMax: 8,  active: [4,5,6,9,10] },
-    { name: 'Густера',           tMin: 12, tMax: 24, press: 'any',    windMax: 6,  active: [6,7,8,9] },
-    { name: 'Елец',              tMin: 10, tMax: 22, press: 'any',    windMax: 8,  active: [5,6,7,8,9] },
-    { name: 'Язь',               tMin: 12, tMax: 22, press: 'any',    windMax: 8,  active: [4,5,6,9,10] },
-    { name: 'Голавль',           tMin: 12, tMax: 22, press: 'any',    windMax: 8,  active: [5,6,7,8,9] },
-    { name: 'Уклейка',           tMin: 10, tMax: 24, press: 'any',    windMax: 6,  active: [4,5,6,7,8,9,10] },
-    { name: 'Линь',              tMin: 16, tMax: 26, press: 'stable', windMax: 4,  active: [6,7,8] },
-    { name: 'Стерлядь',          tMin: 10, tMax: 22, press: 'stable', windMax: 6,  active: [5,6,7,8,9] },
-    { name: 'Угорь',             tMin: 14, tMax: 24, press: 'any',    windMax: 6,  active: [6,7,8,9] },
-    { name: 'Подуст',            tMin: 12, tMax: 22, press: 'any',    windMax: 8,  active: [5,6,7,8,9] },
-    { name: 'Синец',             tMin: 12, tMax: 22, press: 'stable', windMax: 6,  active: [5,6,7,8] },
-    { name: 'Чехонь',            tMin: 14, tMax: 24, press: 'any',    windMax: 6,  active: [5,6,7,8,9] },
-    { name: 'Ротан',             tMin: 6,  tMax: 24, press: 'any',    windMax: 8,  active: [1,2,3,4,5,6,7,8,9,10,11,12] },
-    { name: 'Пескарь',           tMin: 10, tMax: 22, press: 'any',    windMax: 8,  active: [5,6,7,8,9] },
-    { name: 'Ёрш',               tMin: 4,  tMax: 18, press: 'any',    windMax: 10, active: [1,2,3,4,5,9,10,11,12] },
-    { name: 'Корюшка',           tMin: 2,  tMax: 14, press: 'any',    windMax: 10, active: [4,5,10,11] },
-    { name: 'Сиг озёрный',       tMin: 6,  tMax: 16, press: 'any',    windMax: 8,  active: [1,2,3,4,9,10,11,12] }
+    { name: 'Щука', tMin: 4, tMax: 20, press: 'stable', windMax: 8, active: [9,10,11,12,1,2,3] },
+    { name: 'Окунь', tMin: 8, tMax: 22, press: 'any', windMax: 10, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
+    { name: 'Судак', tMin: 10, tMax: 24, press: 'stable', windMax: 8, active: [5,6,7,8,9,10] },
+    { name: 'Лещ', tMin: 14, tMax: 24, press: 'stable', windMax: 6, active: [5,6,7,8,9] },
+    { name: 'Карась', tMin: 16, tMax: 28, press: 'any', windMax: 5, active: [5,6,7,8,9] },
+    { name: 'Карп', tMin: 18, tMax: 28, press: 'stable', windMax: 5, active: [6,7,8,9] },
+    { name: 'Плотва', tMin: 8, tMax: 22, press: 'any', windMax: 8, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
+    { name: 'Краснопёрка', tMin: 14, tMax: 24, press: 'stable', windMax: 6, active: [6,7,8,9] },
+    { name: 'Жерех', tMin: 12, tMax: 22, press: 'any', windMax: 8, active: [5,6,7,8,9,10] },
+    { name: 'Сом', tMin: 18, tMax: 28, press: 'stable', windMax: 5, active: [6,7,8,9] },
+    { name: 'Налим', tMin: 0, tMax: 10, press: 'any', windMax: 10, active: [10,11,12,1,2,3] },
+    { name: 'Форель ручьевая', tMin: 8, tMax: 18, press: 'any', windMax: 10, active: [4,5,6,9,10,11] },
+    { name: 'Форель озёрная', tMin: 8, tMax: 18, press: 'any', windMax: 8, active: [4,5,6,9,10,11] },
+    { name: 'Хариус', tMin: 6, tMax: 16, press: 'any', windMax: 8, active: [4,5,6,9,10] },
+    { name: 'Густера', tMin: 12, tMax: 24, press: 'any', windMax: 6, active: [6,7,8,9] },
+    { name: 'Елец', tMin: 10, tMax: 22, press: 'any', windMax: 8, active: [5,6,7,8,9] },
+    { name: 'Язь', tMin: 12, tMax: 22, press: 'any', windMax: 8, active: [4,5,6,9,10] },
+    { name: 'Голавль', tMin: 12, tMax: 22, press: 'any', windMax: 8, active: [5,6,7,8,9] },
+    { name: 'Уклейка', tMin: 10, tMax: 24, press: 'any', windMax: 6, active: [4,5,6,7,8,9,10] },
+    { name: 'Линь', tMin: 16, tMax: 26, press: 'stable', windMax: 4, active: [6,7,8] },
+    { name: 'Стерлядь', tMin: 10, tMax: 22, press: 'stable', windMax: 6, active: [5,6,7,8,9] },
+    { name: 'Угорь', tMin: 14, tMax: 24, press: 'any', windMax: 6, active: [6,7,8,9] },
+    { name: 'Подуст', tMin: 12, tMax: 22, press: 'any', windMax: 8, active: [5,6,7,8,9] },
+    { name: 'Синец', tMin: 12, tMax: 22, press: 'stable', windMax: 6, active: [5,6,7,8] },
+    { name: 'Чехонь', tMin: 14, tMax: 24, press: 'any', windMax: 6, active: [5,6,7,8,9] },
+    { name: 'Ротан', tMin: 6, tMax: 24, press: 'any', windMax: 8, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
+    { name: 'Пескарь', tMin: 10, tMax: 22, press: 'any', windMax: 8, active: [5,6,7,8,9] },
+    { name: 'Ёрш', tMin: 4, tMax: 18, press: 'any', windMax: 10, active: [1,2,3,4,5,9,10,11,12] },
+    { name: 'Корюшка', tMin: 2, tMax: 14, press: 'any', windMax: 10, active: [4,5,10,11] },
+    { name: 'Сиг озёрный', tMin: 6, tMax: 16, press: 'any', windMax: 8, active: [1,2,3,4,9,10,11,12] }
 ];
 
 function isNearSPb() { return Math.abs(lat - SPB_LAT) < 0.8 && Math.abs(lon - SPB_LON) < 1.2; }
@@ -1111,10 +1096,9 @@ function renderFishing(cur) {
         + ' · Ветер <span>' + fmtNum(wind, ' м/с') + '</span></div>';
     for (var i = 0; i < scored.length; i++) {
         var f = scored[i];
-        var delay = Math.min(i * 0.02, 0.5);
-        html += '<div class="fish-item" style="animation-delay:' + delay + 's">'
+        html += '<div class="fish-item">'
             + '<span class="fish-name">' + f.name + '</span>'
-            + '<div class="fish-bar"><div class="fish-bar-fill" style="width:' + f.score + '%;background:' + fishBarColor(f.score) + ';animation-delay:' + (delay + 0.1) + 's"></div></div>'
+            + '<div class="fish-bar"><div class="fish-bar-fill" style="width:' + f.score + '%;background:' + fishBarColor(f.score) + '"></div></div>'
             + '<span class="fish-score">' + f.score + '</span>'
             + '</div>';
     }
@@ -1150,7 +1134,7 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
-window.addEventListener('online', function() { console.log('Сеть вернулась — обновляю'); loadWeather(true); });
+window.addEventListener('online', function() { loadWeather(true); });
 window.addEventListener('offline', function() { showStatus('Нет интернета. Показываю последние данные.', 'warn'); });
 
 // ===== СТАРТ =====

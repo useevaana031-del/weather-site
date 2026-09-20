@@ -3,27 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Погода</title>
+<title>Погода и Клёв | Санкт-Петербург</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         min-height: 100vh;
         background: radial-gradient(ellipse at top, #1a2440 0%, #0a0e1a 50%, #050810 100%);
         color: #f5f7fa;
-        font-family: Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: flex-start;
         padding: 24px 16px;
+        -webkit-font-smoothing: antialiased;
     }
     .container {
         width: 100%;
-        max-width: 680px;
+        max-width: 720px;
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 28px;
         padding: 28px 26px;
         box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+        backdrop-filter: blur(20px);
     }
     .header {
         display: flex;
@@ -31,7 +33,7 @@
         align-items: center;
         margin-bottom: 6px;
     }
-    h1 { font-size: 26px; font-weight: 600; }
+    h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.6px; }
     .date { font-size: 13px; color: #8b95a8; margin-bottom: 22px; }
     .icon-refresh {
         background: rgba(255,255,255,0.05);
@@ -42,29 +44,12 @@
         color: #c5cdd9;
         font-size: 18px;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .icon-refresh:hover { background: rgba(255,255,255,0.1); }
-    .top-bar {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-    }
-    .btn, .select-model {
-        flex: 1;
-        min-width: 130px;
-        padding: 11px 14px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 14px;
-        color: #c5cdd9;
-        font-size: 13px;
-        cursor: pointer;
-        font-family: inherit;
-    }
-    .btn:hover, .select-model:hover { background: rgba(255,255,255,0.08); color: #fff; }
-    .select-model { text-align: left; }
-    .select-model option { background: #141b2e; color: #fff; }
+
     .current {
         display: flex;
         align-items: center;
@@ -79,7 +64,7 @@
     }
     .current-left { display: flex; align-items: center; gap: 18px; }
     .current-icon { font-size: 72px; line-height: 1; }
-    .current-temp { font-size: 56px; font-weight: 200; line-height: 1; }
+    .current-temp { font-size: 56px; font-weight: 200; line-height: 1; letter-spacing: -2px; }
     .current-desc { font-size: 14px; color: #c5cdd9; margin-top: 6px; }
     .current-right {
         display: grid;
@@ -94,6 +79,7 @@
         gap: 16px;
     }
     .current-right .row span:last-child { color: #fff; font-weight: 600; }
+
     .section-title {
         font-size: 11.5px;
         font-weight: 600;
@@ -102,6 +88,7 @@
         letter-spacing: 1.4px;
         margin: 22px 0 14px;
     }
+
     .hourly {
         display: flex;
         overflow-x: auto;
@@ -125,7 +112,7 @@
     .hour-item.now .h-time { color: #5eb8ff; font-weight: 600; }
     .hour-item .h-icon { font-size: 22px; margin-bottom: 6px; display: block; }
     .hour-item .h-temp { font-size: 14px; font-weight: 600; }
-    .hour-item .h-rain { font-size: 10px; color: #5eb8ff; margin-top: 2px; }
+
     .week-list {
         background: rgba(255,255,255,0.02);
         border: 1px solid rgba(255,255,255,0.05);
@@ -149,6 +136,7 @@
     .day-rain { color: #5eb8ff; font-size: 12px; text-align: right; }
     .day-temp { text-align: right; font-weight: 600; }
     .day-temp .min { color: #8b95a8; font-weight: 400; margin-right: 8px; }
+
     .fish-block {
         background: linear-gradient(135deg, rgba(74,217,160,0.06), rgba(94,184,255,0.04));
         border: 1px solid rgba(74,217,160,0.12);
@@ -157,7 +145,7 @@
         margin-bottom: 10px;
         font-size: 13px;
     }
-    .fish-block .ft { font-weight: 700; margin-bottom: 12px; font-size: 14.5px; }
+    .fish-block .ft { font-weight: 700; margin-bottom: 12px; font-size: 14.5px; display: flex; align-items: center; justify-content: space-between; }
     .fish-row {
         display: flex;
         justify-content: space-between;
@@ -172,8 +160,8 @@
         border-radius: 8px;
         font-size: 12px;
         font-weight: 700;
-        margin-left: 8px;
     }
+
     .loading { text-align: center; color: #8b95a8; padding: 20px; font-size: 13px; }
     .error-box {
         background: rgba(255,100,100,0.08);
@@ -216,17 +204,6 @@
     </div>
     <div class="date" id="currentDate">Загрузка...</div>
 
-    <div class="top-bar">
-        <button class="btn" onclick="detectLocation()">Моё местоположение</button>
-        <button class="btn" onclick="resetToSPB()">Санкт-Петербург</button>
-        <select class="select-model" id="modelSelect" onchange="loadWeather()">
-            <option value="best_match">Лучшая модель</option>
-            <option value="ecmwf_ifs04">ECMWF (Европа)</option>
-            <option value="icon_seamless">ICON (Германия)</option>
-            <option value="gfs_seamless">GFS (США)</option>
-        </select>
-    </div>
-
     <div id="statusBox"></div>
     <div id="errorMessage" class="error-box" style="display: none;"></div>
 
@@ -265,7 +242,7 @@ var lon = 30.3141;
 var cityName = document.getElementById('cityName');
 var statusBox = document.getElementById('statusBox');
 var errorBox = document.getElementById('errorMessage');
-var CACHE_KEY = 'weather_cache_v2';
+var CACHE_KEY = 'weather_cache_v3';
 
 function showStatus(text, type) {
     if (!text) { statusBox.innerHTML = ''; return; }
@@ -350,14 +327,13 @@ function loadCache() {
     } catch (e) { return null; }
 }
 
-// ==== ИСТОЧНИК 1: Open-Meteo ====
+// ==== ИСТОЧНИК ПОГОДЫ ====
 async function fetchFromOpenMeteo() {
-    var model = document.getElementById('modelSelect').value;
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
         + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,uv_index'
         + '&hourly=temperature_2m,weather_code,precipitation_probability'
         + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'
-        + '&timezone=auto&forecast_days=7&models=' + model;
+        + '&timezone=auto&forecast_days=7';
 
     var res = await fetchWithTimeout(url, 8000);
     if (!res.ok) throw new Error('Open-Meteo: HTTP ' + res.status);
@@ -398,81 +374,6 @@ function normalizeOpenMeteo(d) {
     };
 }
 
-// ==== ИСТОЧНИК 2: wttr.in (резервный) ====
-async function fetchFromWttr() {
-    var url = 'https://wttr.in/' + lat + ',' + lon + '?format=j1';
-    var res = await fetchWithTimeout(url, 8000);
-    if (!res.ok) throw new Error('wttr.in: HTTP ' + res.status);
-    var data = await res.json();
-    return { source: 'wttr.in', data: normalizeWttr(data) };
-}
-
-function normalizeWttr(d) {
-    var cur = d.current_condition[0];
-    var now = new Date();
-    var hourly = [];
-    var daily = [];
-
-    // wttr.in даёт прогноз по 3 часа на 3 дня
-    var weatherArr = d.weather || [];
-    for (var day = 0; day < weatherArr.length && day < 3; day++) {
-        var wd = weatherArr[day];
-        var date = wd.date;
-        // Часы
-        var hours = wd.hourly || [];
-        for (var h = 0; h < hours.length; h++) {
-            var hh = hours[h];
-            var t = hh.time;
-            var tStr = t.length === 3 ? '0' + t.slice(0,1) + ':00' : t.slice(0,2) + ':00';
-            hourly.push({
-                time: date + 'T' + tStr,
-                temp: parseFloat(hh.tempC),
-                code: wmoFromWttr(hh.weatherCode),
-                rain: parseFloat(hh.chanceofrain || 0)
-            });
-        }
-        // День
-        daily.push({
-            time: date,
-            code: wmoFromWttr(wd.hourly[4] ? wd.hourly[4].weatherCode : '113'),
-            max: parseFloat(wd.maxtempC),
-            min: parseFloat(wd.mintempC),
-            rain: parseFloat(wd.hourly[4] ? wd.hourly[4].chanceofrain : 0),
-            sunrise: '0' + wd.astronomy[0].sunrise.replace(' AM','').replace(' PM','').trim() + ':00',
-            sunset: '0' + wd.astronomy[0].sunset.replace(' AM','').replace(' PM','').trim() + ':00'
-        });
-    }
-
-    return {
-        current: {
-            temp: parseFloat(cur.temp_C),
-            feels: parseFloat(cur.FeelsLikeC),
-            code: wmoFromWttr(cur.weatherCode),
-            humidity: parseFloat(cur.humidity),
-            wind: parseFloat(cur.windspeedKmph) / 3.6,
-            pressure: parseFloat(cur.pressure),
-            uv: parseFloat(cur.uvIndex)
-        },
-        hourly: hourly,
-        daily: daily
-    };
-}
-
-// Конвертация wttr-кодов в WMO (примерная)
-function wmoFromWttr(code) {
-    var c = parseInt(code, 10);
-    if (c === 113) return 0; // Sunny
-    if (c === 116) return 2; // Partly cloudy
-    if (c === 119 || c === 122) return 3; // Cloudy/Overcast
-    if (c === 143 || c === 248 || c === 260) return 45; // Fog
-    if (c >= 176 && c <= 200) return 61; // Rain
-    if (c >= 227 && c <= 230) return 71; // Snow
-    if (c >= 311 && c <= 314) return 63; // Heavy rain
-    if (c >= 320 && c <= 395) return 73; // Snow
-    if (c >= 200 && c <= 232) return 95; // Thunder
-    return 1;
-}
-
 async function loadWeather() {
     updateDate();
     errorBox.style.display = 'none';
@@ -481,25 +382,12 @@ async function loadWeather() {
     var result = null;
     var errors = [];
 
-    // Пробуем Open-Meteo
     try {
         result = await fetchFromOpenMeteo();
     } catch (e) {
         errors.push('Open-Meteo: ' + e.message);
-        console.log('Open-Meteo упал, пробую wttr.in...');
     }
 
-    // Если не вышло — пробуем wttr.in
-    if (!result) {
-        try {
-            result = await fetchFromWttr();
-        } catch (e) {
-            errors.push('wttr.in: ' + e.message);
-            console.log('wttr.in тоже не отвечает');
-        }
-    }
-
-    // Если оба не ответили — берём из кэша
     if (!result) {
         var cached = loadCache();
         if (cached) {
@@ -514,7 +402,6 @@ async function loadWeather() {
         return;
     }
 
-    // Успех — рендерим и кэшируем
     renderAll(result.data);
     saveCache(result.data, result.source);
 }
@@ -536,7 +423,6 @@ function renderAll(data) {
         document.getElementById('sunset').textContent = (data.daily[0].sunset || '').slice(11, 16);
     }
 
-    // Почасовой (48 часов)
     var nowTime = new Date();
     var hourlyHTML = '';
     var count = 0;
@@ -551,13 +437,11 @@ function renderAll(data) {
             + '<div class="h-time">' + (isNow ? 'Сейчас' : timeStr) + '</div>'
             + '<span class="h-icon">' + getWeatherIcon(h.code) + '</span>'
             + '<div class="h-temp">' + temp + '°</div>'
-            + '<div class="h-rain">' + Math.round(h.rain) + '%</div>'
             + '</div>';
         count++;
     }
     document.getElementById('hourly').innerHTML = hourlyHTML;
 
-    // Неделя
     var dayN = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
     var weekHTML = '';
     for (var j = 0; j < data.daily.length; j++) {

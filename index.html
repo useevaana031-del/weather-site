@@ -277,7 +277,7 @@ var SPB_LAT = 59.9386;
 var SPB_LON = 30.3141;
 var lat = SPB_LAT;
 var lon = SPB_LON;
-var CACHE_KEY = 'weather_cache_v9';
+var CACHE_KEY = 'weather_cache_v10';
 var USER_CITY_KEY = 'user_city';
 var USER_LAT_KEY = 'user_lat';
 var USER_LON_KEY = 'user_lon';
@@ -401,20 +401,12 @@ function loadCache() {
     } catch (e) { return null; }
 }
 
-// ==== ГЕОЛОКАЦИЯ ====
+// ===== ГЕОЛОКАЦИЯ =====
 function saveUserLocation(city) {
     try {
         localStorage.setItem(USER_CITY_KEY, city);
         localStorage.setItem(USER_LAT_KEY, String(lat));
         localStorage.setItem(USER_LON_KEY, String(lon));
-    } catch (e) {}
-}
-
-function clearUserLocation() {
-    try {
-        localStorage.removeItem(USER_CITY_KEY);
-        localStorage.removeItem(USER_LAT_KEY);
-        localStorage.removeItem(USER_LON_KEY);
     } catch (e) {}
 }
 
@@ -427,8 +419,7 @@ function initLocation() {
             var la = parseFloat(savedLat);
             var lo = parseFloat(savedLon);
             if (isNaN(la) || isNaN(lo)) return false;
-            lat = la;
-            lon = lo;
+            lat = la; lon = lo;
             cityNameEl.textContent = savedCity;
             updateCoords();
             return true;
@@ -447,18 +438,15 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 
 function determineCityName(callback) {
     var distToSPb = distanceKm(lat, lon, SPB_LAT, SPB_LON);
-    // Радиус 15 км — точнее определяет СПб
     if (distToSPb < 15) {
         cityNameEl.textContent = 'Санкт-Петербург';
         saveUserLocation('Санкт-Петербург');
         if (callback) callback();
         return;
     }
-
     var myToken = requestToken;
     var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat
         + '&lon=' + lon + '&zoom=18&addressdetails=1&accept-language=ru';
-
     fetchWithTimeout(url, 6000)
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -466,7 +454,6 @@ function determineCityName(callback) {
             var found = false;
             if (data && data.address) {
                 var addr = data.address;
-                // Приоритет: город → посёлок → деревня → муниципалитет → район → регион
                 var city = addr.city || addr.town || addr.village || addr.municipality
                     || addr.city_district || addr.county || addr.state;
                 if (city) {
@@ -487,7 +474,6 @@ function determineCityName(callback) {
         });
 }
 
-// Быстрая геолокация (по Wi-Fi/сети) — срабатывает за 1-3 секунды
 function requestLocationQuick() {
     if (!navigator.geolocation) { resetToSPB(); return; }
     navigator.geolocation.getCurrentPosition(
@@ -495,20 +481,16 @@ function requestLocationQuick() {
             lat = pos.coords.latitude;
             lon = pos.coords.longitude;
             updateCoords();
-            determineCityName(function() {
-                loadWeather(true);
-            });
+            determineCityName(function() { loadWeather(true); });
         },
         function(err) {
             console.warn('Быстрая геолокация не удалась:', err.message);
-            // Не сбрасываем на СПб сразу — попробуем точную
             requestLocationPrecise();
         },
         { enableHighAccuracy: false, timeout: 6000, maximumAge: 5 * 60 * 1000 }
     );
 }
 
-// Точная геолокация (GPS) — 5-15 секунд, но точнее
 function requestLocationPrecise() {
     if (!navigator.geolocation) { resetToSPB(); return; }
     navigator.geolocation.getCurrentPosition(
@@ -523,11 +505,8 @@ function requestLocationPrecise() {
         },
         function(err) {
             console.warn('Точная геолокация не удалась:', err.message);
-            // Если город всё ещё "Определяю..." или пусто — сбрасываем на СПб
             var txt = cityNameEl.textContent;
-            if (!txt || txt === 'Определяю...' || txt === 'Моё местоположение') {
-                resetToSPB();
-            }
+            if (!txt || txt === 'Определяю...' || txt === 'Моё местоположение') resetToSPB();
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
@@ -536,9 +515,7 @@ function requestLocationPrecise() {
 function detectLocation() {
     cityNameEl.textContent = 'Определяю...';
     coordsEl.textContent = '';
-    // Сначала быстрая (мгновенно показывает погоду), потом точная (уточняет)
     requestLocationQuick();
-    // Параллельно запускаем точную через 500мс — чтобы не блокировать
     setTimeout(function() {
         if (cityNameEl.textContent === 'Определяю...' || cityNameEl.textContent === 'Моё местоположение') return;
         requestLocationPrecise();
@@ -555,7 +532,7 @@ function resetToSPB() {
     loadWeather(true);
 }
 
-// ==== ИКОНКИ / ОПИСАНИЯ ====
+// ===== ИКОНКИ =====
 function toCode(v) {
     var n = Number(v);
     if (isNaN(n) || !isFinite(n)) return -1;
@@ -591,6 +568,7 @@ function getWeatherDesc(code) {
     if (code === 63) return 'Дождь';
     if (code === 65) return 'Сильный дождь';
     if (code === 66 || code === 67) return 'Ледяной дождь';
+    if (code === 68) return 'Мокрый снег';
     if (code === 71) return 'Небольшой снег';
     if (code === 73) return 'Снег';
     if (code === 75) return 'Сильный снег';
@@ -619,7 +597,24 @@ function codeSeverityNum(code) {
     return 3;
 }
 
-// ==== OPEN-METEO ====
+// Коррекция кода по температуре — убирает бред
+function correctCodeByTemp(code, temp) {
+    if (!isNum(temp)) return code;
+    // Если снег, а на улице плюс больше 5° → дождь
+    if (temp > 5 && ((code >= 71 && code <= 77) || (code >= 85 && code <= 86))) {
+        if (code === 71 || code === 73 || code === 75 || code === 77) return 61;
+        if (code === 85 || code === 86) return 80;
+    }
+    // Если дождь, а на улице минус → снег
+    if (temp < 0 && ((code >= 51 && code <= 67) || (code >= 80 && code <= 82))) {
+        if (code >= 51 && code <= 57) return 71;
+        if (code >= 61 && code <= 67) return 73;
+        if (code >= 80 && code <= 82) return 75;
+    }
+    return code;
+}
+
+// ===== OPEN-METEO =====
 function normalizeOpenMeteo(d) {
     var hTime = (d.hourly && d.hourly.time) || [];
     var hTemp = (d.hourly && d.hourly.temperature_2m) || [];
@@ -636,7 +631,6 @@ function normalizeOpenMeteo(d) {
     var dSunset = (d.daily && d.daily.sunset) || [];
 
     if (dTime.length && (!dMax.length || !dMin.length)) {
-        console.warn('daily min/max пустые, считаю из hourly');
         var fMax = [], fMin = [], fRain = [], fCode = [];
         for (var di = 0; di < dTime.length; di++) {
             var dayKey = dTime[di];
@@ -662,7 +656,7 @@ function normalizeOpenMeteo(d) {
             time: d.current.time,
             temp: d.current.temperature_2m,
             feels: d.current.apparent_temperature,
-            code: d.current.weather_code,
+            code: correctCodeByTemp(d.current.weather_code, d.current.temperature_2m),
             humidity: d.current.relative_humidity_2m,
             wind: d.current.wind_speed_10m,
             pressure: d.current.pressure_msl,
@@ -670,14 +664,18 @@ function normalizeOpenMeteo(d) {
         },
         hourly: hTime.map(function(t, i) {
             return {
-                time: t, temp: hTemp[i], code: hCode[i],
+                time: t, temp: hTemp[i],
+                code: correctCodeByTemp(hCode[i], hTemp[i]),
                 rain: isNum(hRain[i]) ? hRain[i] : 0,
                 pressure: isNum(hPress[i]) ? hPress[i] : null
             };
         }),
         daily: dTime.map(function(t, i) {
+            var avgTemp = (isNum(dMax[i]) && isNum(dMin[i])) ? (dMax[i] + dMin[i]) / 2 : 0;
             return {
-                time: t, code: dCode[i], max: dMax[i], min: dMin[i],
+                time: t,
+                code: correctCodeByTemp(dCode[i], avgTemp),
+                max: dMax[i], min: dMin[i],
                 rain: isNum(dRain[i]) ? dRain[i] : 0,
                 sunrise: dSunrise[i], sunset: dSunset[i]
             };
@@ -710,7 +708,7 @@ async function fetchFromOpenMeteo(preferredModel) {
     };
 }
 
-// ==== WTTR.IN (резерв) ====
+// ===== WTTR.IN (ТОЧНЫЙ МАППИНГ WWO → WMO) =====
 function parseWttrTime(s) {
     if (!s) return '06:00';
     s = String(s).trim();
@@ -732,58 +730,125 @@ function wttrTimeToISO(t) {
 function wmoFromWttr(code) {
     var c = parseInt(code, 10);
     if (isNaN(c)) return 3;
-    if (c === 113) return 0;
-    if (c === 116) return 2;
-    if (c === 119 || c === 122) return 3;
-    if (c === 143 || c === 248 || c === 260) return 45;
-    if (c >= 176 && c <= 200) return 61;
-    if (c >= 227 && c <= 230) return 71;
-    if (c >= 311 && c <= 314) return 63;
-    if (c >= 320 && c <= 395) return 73;
-    if (c >= 200 && c <= 232) return 95;
-    return 1;
+    // === Ясно / Облачность ===
+    if (c === 113) return 0;        // Sunny
+    if (c === 116) return 2;        // Partly cloudy
+    if (c === 119) return 3;        // Cloudy
+    if (c === 122) return 3;        // Overcast
+    // === Туман ===
+    if (c === 143) return 45;       // Mist
+    if (c === 248) return 45;       // Fog
+    if (c === 260) return 48;       // Freezing fog
+    // === Изморозь / Морозный дождь ===
+    if (c === 185) return 56;       // Freezing drizzle
+    if (c === 281) return 56;       // Freezing drizzle
+    if (c === 284) return 57;       // Heavy freezing drizzle
+    if (c === 311) return 56;       // Light freezing rain
+    if (c === 314) return 57;       // Heavy freezing rain
+    // === Мелкий дождь ===
+    if (c === 263) return 51;       // Patchy light drizzle
+    if (c === 266) return 51;       // Light drizzle
+    // === Дождь ===
+    if (c === 176) return 61;       // Patchy rain nearby
+    if (c === 293) return 61;       // Patchy light rain
+    if (c === 296) return 61;       // Light rain
+    if (c === 299) return 63;       // Moderate rain at times
+    if (c === 302) return 63;       // Moderate rain
+    if (c === 305) return 65;       // Heavy rain at times
+    if (c === 308) return 65;       // Heavy rain
+    // === Мокрый снег ===
+    if (c === 182) return 68;       // Patchy sleet nearby
+    if (c === 317) return 68;       // Light sleet
+    if (c === 320) return 68;       // Moderate or heavy sleet
+    // === Снег ===
+    if (c === 179) return 71;       // Patchy snow nearby
+    if (c === 227) return 71;       // Blowing snow
+    if (c === 230) return 75;       // Blizzard
+    if (c === 323) return 71;       // Patchy light snow
+    if (c === 326) return 71;       // Light snow
+    if (c === 329) return 73;       // Patchy moderate snow
+    if (c === 332) return 73;       // Moderate snow
+    if (c === 335) return 75;       // Patchy heavy snow
+    if (c === 338) return 75;       // Heavy snow
+    // === Крупа ===
+    if (c === 350) return 77;       // Ice pellets
+    if (c === 374) return 77;       // Light showers of ice pellets
+    if (c === 377) return 77;       // Moderate/heavy showers of ice pellets
+    // === Ливень ===
+    if (c === 353) return 80;       // Light rain shower
+    if (c === 356) return 81;       // Moderate/heavy rain shower
+    if (c === 359) return 82;       // Torrential rain shower
+    // === Снежный ливень ===
+    if (c === 362) return 85;       // Light sleet showers
+    if (c === 365) return 86;       // Moderate/heavy sleet showers
+    if (c === 368) return 85;       // Light snow showers
+    if (c === 371) return 86;       // Moderate/heavy snow showers
+    // === Гроза ===
+    if (c === 200) return 95;       // Thundery outbreaks
+    if (c === 386) return 95;       // Patchy light rain with thunder
+    if (c === 389) return 96;       // Moderate/heavy rain with thunder
+    if (c === 392) return 95;       // Patchy light snow with thunder
+    if (c === 395) return 96;       // Moderate/heavy snow with thunder
+    return 3;
 }
 
 function normalizeWttr(d) {
     var cur = d.current_condition[0];
     var hourly = [], daily = [];
     var weatherArr = d.weather || [];
+
     for (var day = 0; day < weatherArr.length && day < 3; day++) {
         var wd = weatherArr[day];
         var date = wd.date;
         var hours = wd.hourly || [];
+
         for (var h = 0; h < hours.length; h++) {
             var hh = hours[h];
+            var hTemp = parseFloat(hh.tempC) || 0;
+            var hCode = wmoFromWttr(hh.weatherCode);
+            hCode = correctCodeByTemp(hCode, hTemp);
             hourly.push({
                 time: date + 'T' + wttrTimeToISO(hh.time),
-                temp: parseFloat(hh.tempC),
-                code: wmoFromWttr(hh.weatherCode),
+                temp: hTemp,
+                code: hCode,
                 rain: parseFloat(hh.chanceofrain || 0),
                 pressure: parseFloat(hh.pressure || 0)
             });
         }
+
         var astro = wd.astronomy && wd.astronomy[0] ? wd.astronomy[0] : {};
+        var dMax = parseFloat(wd.maxtempC) || 0;
+        var dMin = parseFloat(wd.mintempC) || 0;
+        var dAvg = (dMax + dMin) / 2;
+        var dCode = wmoFromWttr(wd.hourly && wd.hourly[4] ? wd.hourly[4].weatherCode : '113');
+        dCode = correctCodeByTemp(dCode, dAvg);
+
         daily.push({
             time: date,
-            code: wmoFromWttr(wd.hourly && wd.hourly[4] ? wd.hourly[4].weatherCode : '113'),
-            max: parseFloat(wd.maxtempC),
-            min: parseFloat(wd.mintempC),
+            code: dCode,
+            max: dMax,
+            min: dMin,
             rain: parseFloat(wd.hourly && wd.hourly[4] ? wd.hourly[4].chanceofrain : 0),
             sunrise: date + 'T' + parseWttrTime(astro.sunrise),
             sunset: date + 'T' + parseWttrTime(astro.sunset)
         });
     }
+
     var now = new Date();
+    var curTemp = parseFloat(cur.temp_C) || 0;
+    var curCode = wmoFromWttr(cur.weatherCode);
+    curCode = correctCodeByTemp(curCode, curTemp);
+
     return {
         current: {
             time: now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-' + pad2(now.getDate()) + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()),
-            temp: parseFloat(cur.temp_C),
-            feels: parseFloat(cur.FeelsLikeC),
-            code: wmoFromWttr(cur.weatherCode),
-            humidity: parseFloat(cur.humidity),
+            temp: curTemp,
+            feels: parseFloat(cur.FeelsLikeC) || 0,
+            code: curCode,
+            humidity: parseFloat(cur.humidity) || 0,
             wind: parseFloat(cur.windspeedKmph) / 3.6,
-            pressure: parseFloat(cur.pressure),
-            uv: parseFloat(cur.uvIndex)
+            pressure: parseFloat(cur.pressure) || 0,
+            uv: parseFloat(cur.uvIndex) || 0
         },
         hourly: hourly,
         daily: daily
@@ -798,7 +863,7 @@ async function fetchFromWttr() {
     return { source: 'wttr.in', data: normalizeWttr(data), modelsInfo: '' };
 }
 
-// ==== ГЛАВНАЯ ЗАГРУЗКА ====
+// ===== ГЛАВНАЯ ЗАГРУЗКА =====
 async function loadWeather(force) {
     if (!force && document.hidden) return;
     if (!force && lastUpdateMs && (Date.now() - lastUpdateMs) < 5 * 60 * 1000) { updateLastUpdated(); return; }
@@ -816,7 +881,6 @@ async function loadWeather(force) {
     var userModel = document.getElementById('modelSelect').value;
 
     if (userModel === 'best_match') {
-        // Приоритет: ECMWF (самая точная в Европе) → авто
         try {
             result = await fetchFromOpenMeteo('ecmwf_ifs04');
         } catch (e) {
@@ -872,7 +936,7 @@ async function loadWeather(force) {
     document.getElementById('modelsRow').textContent = result.modelsInfo || ('Источник: ' + result.source);
 }
 
-// ==== РЕНДЕР ====
+// ===== РЕНДЕР =====
 function renderAll(data, isCached) {
     var cur = data.current;
 
@@ -968,7 +1032,7 @@ function renderDaily(data) {
     document.getElementById('forecastList').innerHTML = html || '<div class="loading">Нет данных</div>';
 }
 
-// ==== КЛЁВ ====
+// ===== КЛЁВ =====
 var FISH = [
     { name: 'Щука',              tMin: 4,  tMax: 20, press: 'stable', windMax: 8,  active: [9,10,11,12,1,2,3] },
     { name: 'Окунь',             tMin: 8,  tMax: 22, press: 'any',    windMax: 10, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
@@ -1058,7 +1122,7 @@ function renderFishing(cur) {
     document.getElementById('fishing').innerHTML = html;
 }
 
-// ==== TICK ====
+// ===== TICK =====
 function tick() {
     updateClock();
     updateDate();
@@ -1089,20 +1153,17 @@ document.addEventListener('visibilitychange', function() {
 window.addEventListener('online', function() { console.log('Сеть вернулась — обновляю'); loadWeather(true); });
 window.addEventListener('offline', function() { showStatus('Нет интернета. Показываю последние данные.', 'warn'); });
 
-// ==== СТАРТ ====
+// ===== СТАРТ =====
 updateDate();
 updateClock();
 updateCoords();
 
-// Пытаемся использовать сохранённое местоположение
 var hasSaved = initLocation();
 if (!hasSaved) {
-    // Нет сохранённого — оставляем СПб по умолчанию (не запрашиваем геолокацию сразу)
     cityNameEl.textContent = 'Санкт-Петербург';
     updateCoords();
 }
 
-// Кэш погоды для мгновенного отображения
 var cached = loadCache();
 if (cached) {
     if (cached.city) cityNameEl.textContent = cached.city;

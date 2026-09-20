@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -31,13 +30,6 @@
     @keyframes barGrow {
         from { transform: scaleX(0); }
         to   { transform: scaleX(1); }
-    }
-
-    html {
-        text-size-adjust: 100%;
-        -webkit-text-size-adjust: 100%;
-        -moz-text-size-adjust: 100%;
-        -ms-text-size-adjust: 100%;
     }
 
     body {
@@ -285,7 +277,10 @@ var SPB_LAT = 59.9386;
 var SPB_LON = 30.3141;
 var lat = SPB_LAT;
 var lon = SPB_LON;
-var CACHE_KEY = 'weather_cache_v8';
+var CACHE_KEY = 'weather_cache_v9';
+var USER_CITY_KEY = 'user_city';
+var USER_LAT_KEY = 'user_lat';
+var USER_LON_KEY = 'user_lon';
 var API_REFRESH_MS = 10 * 60 * 1000;
 var UI_TICK_MS = 30 * 1000;
 var REQUEST_TIMEOUT_MS = 12000;
@@ -400,12 +395,167 @@ function loadCache() {
         if (!obj || !obj.timestamp || !obj.data) return null;
         if (Date.now() - obj.timestamp > 24 * 3600 * 1000) return null;
         if (typeof obj.lat !== 'number' || typeof obj.lon !== 'number') return null;
-        if (Math.abs(obj.lat - lat) > 0.1 || Math.abs(obj.lon - lon) > 0.1) return null;
+        if (Math.abs(obj.lat - lat) > 0.5 || Math.abs(obj.lon - lon) > 0.5) return null;
         if (!obj.data.current || !obj.data.hourly || !obj.data.daily) return null;
         return obj;
     } catch (e) { return null; }
 }
 
+// ==== ГЕОЛОКАЦИЯ ====
+function saveUserLocation(city) {
+    try {
+        localStorage.setItem(USER_CITY_KEY, city);
+        localStorage.setItem(USER_LAT_KEY, String(lat));
+        localStorage.setItem(USER_LON_KEY, String(lon));
+    } catch (e) {}
+}
+
+function clearUserLocation() {
+    try {
+        localStorage.removeItem(USER_CITY_KEY);
+        localStorage.removeItem(USER_LAT_KEY);
+        localStorage.removeItem(USER_LON_KEY);
+    } catch (e) {}
+}
+
+function initLocation() {
+    try {
+        var savedCity = localStorage.getItem(USER_CITY_KEY);
+        var savedLat = localStorage.getItem(USER_LAT_KEY);
+        var savedLon = localStorage.getItem(USER_LON_KEY);
+        if (savedCity && savedLat && savedLon) {
+            var la = parseFloat(savedLat);
+            var lo = parseFloat(savedLon);
+            if (isNaN(la) || isNaN(lo)) return false;
+            lat = la;
+            lon = lo;
+            cityNameEl.textContent = savedCity;
+            updateCoords();
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function determineCityName(callback) {
+    var distToSPb = distanceKm(lat, lon, SPB_LAT, SPB_LON);
+    // Радиус 15 км — точнее определяет СПб
+    if (distToSPb < 15) {
+        cityNameEl.textContent = 'Санкт-Петербург';
+        saveUserLocation('Санкт-Петербург');
+        if (callback) callback();
+        return;
+    }
+
+    var myToken = requestToken;
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat
+        + '&lon=' + lon + '&zoom=18&addressdetails=1&accept-language=ru';
+
+    fetchWithTimeout(url, 6000)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (myToken !== requestToken) { if (callback) callback(); return; }
+            var found = false;
+            if (data && data.address) {
+                var addr = data.address;
+                // Приоритет: город → посёлок → деревня → муниципалитет → район → регион
+                var city = addr.city || addr.town || addr.village || addr.municipality
+                    || addr.city_district || addr.county || addr.state;
+                if (city) {
+                    cityNameEl.textContent = city;
+                    saveUserLocation(city);
+                    found = true;
+                }
+            }
+            if (!found) {
+                cityNameEl.textContent = 'Моё местоположение';
+                saveUserLocation('Моё местоположение');
+            }
+            if (callback) callback();
+        })
+        .catch(function() {
+            cityNameEl.textContent = 'Моё местоположение';
+            if (callback) callback();
+        });
+}
+
+// Быстрая геолокация (по Wi-Fi/сети) — срабатывает за 1-3 секунды
+function requestLocationQuick() {
+    if (!navigator.geolocation) { resetToSPB(); return; }
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            lat = pos.coords.latitude;
+            lon = pos.coords.longitude;
+            updateCoords();
+            determineCityName(function() {
+                loadWeather(true);
+            });
+        },
+        function(err) {
+            console.warn('Быстрая геолокация не удалась:', err.message);
+            // Не сбрасываем на СПб сразу — попробуем точную
+            requestLocationPrecise();
+        },
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 5 * 60 * 1000 }
+    );
+}
+
+// Точная геолокация (GPS) — 5-15 секунд, но точнее
+function requestLocationPrecise() {
+    if (!navigator.geolocation) { resetToSPB(); return; }
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            lat = pos.coords.latitude;
+            lon = pos.coords.longitude;
+            updateCoords();
+            determineCityName(function() {
+                loadWeather(true);
+                console.log('Точные координаты применены:', lat.toFixed(5), lon.toFixed(5));
+            });
+        },
+        function(err) {
+            console.warn('Точная геолокация не удалась:', err.message);
+            // Если город всё ещё "Определяю..." или пусто — сбрасываем на СПб
+            var txt = cityNameEl.textContent;
+            if (!txt || txt === 'Определяю...' || txt === 'Моё местоположение') {
+                resetToSPB();
+            }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+
+function detectLocation() {
+    cityNameEl.textContent = 'Определяю...';
+    coordsEl.textContent = '';
+    // Сначала быстрая (мгновенно показывает погоду), потом точная (уточняет)
+    requestLocationQuick();
+    // Параллельно запускаем точную через 500мс — чтобы не блокировать
+    setTimeout(function() {
+        if (cityNameEl.textContent === 'Определяю...' || cityNameEl.textContent === 'Моё местоположение') return;
+        requestLocationPrecise();
+    }, 2500);
+}
+
+function resetToSPB() {
+    requestToken++;
+    lat = SPB_LAT;
+    lon = SPB_LON;
+    cityNameEl.textContent = 'Санкт-Петербург';
+    saveUserLocation('Санкт-Петербург');
+    updateCoords();
+    loadWeather(true);
+}
+
+// ==== ИКОНКИ / ОПИСАНИЯ ====
 function toCode(v) {
     var n = Number(v);
     if (isNaN(n) || !isFinite(n)) return -1;
@@ -469,6 +619,7 @@ function codeSeverityNum(code) {
     return 3;
 }
 
+// ==== OPEN-METEO ====
 function normalizeOpenMeteo(d) {
     var hTime = (d.hourly && d.hourly.time) || [];
     var hTemp = (d.hourly && d.hourly.temperature_2m) || [];
@@ -539,23 +690,17 @@ async function fetchModel(modelName) {
         + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,uv_index'
         + '&hourly=temperature_2m,weather_code,precipitation_probability,pressure_msl'
         + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'
-        + '&timezone=auto&forecast_days=7';
+        + '&timezone=auto&forecast_days=7&elevation=auto';
     if (modelName && modelName !== 'best_match') base += '&models=' + modelName;
-    console.log('Запрос:', base);
     var res = await fetchWithTimeout(base, REQUEST_TIMEOUT_MS);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
     if (data.reason) throw new Error(data.reason);
-    console.log('Ответ API: current=' + (data.current && data.current.temperature_2m)
-        + ', hourly=' + (data.hourly && data.hourly.time ? data.hourly.time.length : 0)
-        + ', daily=' + (data.daily && data.daily.time ? data.daily.time.length : 0)
-        + ', dmax=' + JSON.stringify(data.daily && data.daily.temperature_2m_max ? data.daily.temperature_2m_max.slice(0,3) : null)
-        + ', dmin=' + JSON.stringify(data.daily && data.daily.temperature_2m_min ? data.daily.temperature_2m_min.slice(0,3) : null));
     return normalizeOpenMeteo(data);
 }
 
-async function fetchFromOpenMeteo() {
-    var model = document.getElementById('modelSelect').value;
+async function fetchFromOpenMeteo(preferredModel) {
+    var model = preferredModel || document.getElementById('modelSelect').value;
     var data = await fetchModel(model);
     var nameMap = { 'best_match': 'Авто', 'ecmwf_ifs04': 'ECMWF', 'icon_seamless': 'ICON', 'gfs_seamless': 'GFS' };
     return {
@@ -565,6 +710,7 @@ async function fetchFromOpenMeteo() {
     };
 }
 
+// ==== WTTR.IN (резерв) ====
 function parseWttrTime(s) {
     if (!s) return '06:00';
     s = String(s).trim();
@@ -652,6 +798,7 @@ async function fetchFromWttr() {
     return { source: 'wttr.in', data: normalizeWttr(data), modelsInfo: '' };
 }
 
+// ==== ГЛАВНАЯ ЗАГРУЗКА ====
 async function loadWeather(force) {
     if (!force && document.hidden) return;
     if (!force && lastUpdateMs && (Date.now() - lastUpdateMs) < 5 * 60 * 1000) { updateLastUpdated(); return; }
@@ -666,11 +813,26 @@ async function loadWeather(force) {
     refreshBtn.classList.add('spinning');
 
     var result = null;
+    var userModel = document.getElementById('modelSelect').value;
 
-    try {
-        result = await fetchFromOpenMeteo();
-    } catch (e) {
-        console.error('Open-Meteo упал:', e.message);
+    if (userModel === 'best_match') {
+        // Приоритет: ECMWF (самая точная в Европе) → авто
+        try {
+            result = await fetchFromOpenMeteo('ecmwf_ifs04');
+        } catch (e) {
+            console.warn('ECMWF не ответил, переключаюсь на авто:', e.message);
+            try {
+                result = await fetchFromOpenMeteo('best_match');
+            } catch (e2) {
+                console.error('Open-Meteo упал:', e2.message);
+            }
+        }
+    } else {
+        try {
+            result = await fetchFromOpenMeteo(userModel);
+        } catch (e) {
+            console.error('Open-Meteo упал:', e.message);
+        }
     }
 
     if (myToken !== requestToken) { refreshBtn.classList.remove('spinning'); return; }
@@ -710,6 +872,7 @@ async function loadWeather(force) {
     document.getElementById('modelsRow').textContent = result.modelsInfo || ('Источник: ' + result.source);
 }
 
+// ==== РЕНДЕР ====
 function renderAll(data, isCached) {
     var cur = data.current;
 
@@ -805,6 +968,7 @@ function renderDaily(data) {
     document.getElementById('forecastList').innerHTML = html || '<div class="loading">Нет данных</div>';
 }
 
+// ==== КЛЁВ ====
 var FISH = [
     { name: 'Щука',              tMin: 4,  tMax: 20, press: 'stable', windMax: 8,  active: [9,10,11,12,1,2,3] },
     { name: 'Окунь',             tMin: 8,  tMax: 22, press: 'any',    windMax: 10, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
@@ -894,66 +1058,7 @@ function renderFishing(cur) {
     document.getElementById('fishing').innerHTML = html;
 }
 
-function distanceKm(lat1, lon1, lat2, lon2) {
-    var R = 6371;
-    var dLat = (lat2 - lat1) * Math.PI / 180;
-    var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function detectLocation() {
-    if (!navigator.geolocation) { alert('Геолокация не поддерживается'); return; }
-    cityNameEl.textContent = 'Определяю...';
-    coordsEl.textContent = '';
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            lat = pos.coords.latitude;
-            lon = pos.coords.longitude;
-            updateCoords();
-            var distToSPb = distanceKm(lat, lon, SPB_LAT, SPB_LON);
-            if (distToSPb < 40) {
-                cityNameEl.textContent = 'Санкт-Петербург';
-                loadWeather(true);
-                return;
-            }
-            cityNameEl.textContent = 'Моё местоположение';
-            var myToken = ++requestToken;
-            var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lon + '&zoom=10&accept-language=ru';
-            fetchWithTimeout(url, 5000)
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (myToken !== requestToken) return;
-                    if (data && data.address) {
-                        var addr = data.address;
-                        var city = addr.city || addr.municipality || addr.town || addr.village || addr.state || addr.county;
-                        if (city) cityNameEl.textContent = city;
-                    }
-                })
-                .catch(function() {})
-                .then(function() {
-                    if (myToken !== requestToken) return;
-                    loadWeather(true);
-                });
-        },
-        function(err) {
-            console.log('Геолокация:', err.message);
-            alert('Не удалось определить. Показываю СПб.');
-            resetToSPB();
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-    );
-}
-
-function resetToSPB() {
-    requestToken++;
-    lat = SPB_LAT;
-    lon = SPB_LON;
-    cityNameEl.textContent = 'Санкт-Петербург';
-    updateCoords();
-    loadWeather(true);
-}
-
+// ==== TICK ====
 function tick() {
     updateClock();
     updateDate();
@@ -984,10 +1089,20 @@ document.addEventListener('visibilitychange', function() {
 window.addEventListener('online', function() { console.log('Сеть вернулась — обновляю'); loadWeather(true); });
 window.addEventListener('offline', function() { showStatus('Нет интернета. Показываю последние данные.', 'warn'); });
 
+// ==== СТАРТ ====
 updateDate();
 updateClock();
 updateCoords();
 
+// Пытаемся использовать сохранённое местоположение
+var hasSaved = initLocation();
+if (!hasSaved) {
+    // Нет сохранённого — оставляем СПб по умолчанию (не запрашиваем геолокацию сразу)
+    cityNameEl.textContent = 'Санкт-Петербург';
+    updateCoords();
+}
+
+// Кэш погоды для мгновенного отображения
 var cached = loadCache();
 if (cached) {
     if (cached.city) cityNameEl.textContent = cached.city;

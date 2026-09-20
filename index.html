@@ -2,169 +2,297 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
 <title>Погода</title>
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    @keyframes bgShift {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translate3d(0, 10px, 0); }
+        to   { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    @keyframes pulseOnce {
+        0%   { transform: scale(1); }
+        40%  { transform: scale(1.04); }
+        100% { transform: scale(1); }
+    }
+    @keyframes shimmer {
+        0%   { background-position: -400px 0; }
+        100% { background-position: 400px 0; }
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes barGrow {
+        from { transform: scaleX(0); }
+        to   { transform: scaleX(1); }
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
     body {
         min-height: 100vh;
-        background: radial-gradient(ellipse at top, #1a2440 0%, #0a0e1a 50%, #050810 100%);
+        background: linear-gradient(135deg, #1a2440, #0d1226, #0a0e1a, #121a35, #1a2440);
+        background-size: 400% 400%;
+        animation: bgShift 40s ease infinite;
         color: #f5f7fa;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        padding: 24px 16px;
+        padding: 24px 16px 60px;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        overflow-x: hidden;
     }
+
     .container {
         width: 100%;
         max-width: 680px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.045);
+        border: 1px solid rgba(255,255,255,0.09);
         border-radius: 28px;
         padding: 28px 26px;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.5);
-        animation: fadeIn 0.5s ease;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+        backdrop-filter: blur(20px) saturate(140%);
+        -webkit-backdrop-filter: blur(20px) saturate(140%);
+        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform, opacity;
     }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+
     .header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         margin-bottom: 6px;
+        gap: 12px;
     }
-    h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.3px; }
-    .coords { font-size: 11px; color: #5e6b85; margin-top: 4px; }
-    .header-right { text-align: right; }
-    .clock { font-size: 22px; font-weight: 300; color: #c5cdd9; font-variant-numeric: tabular-nums; }
-    .date { font-size: 12px; color: #8b95a8; margin-bottom: 4px; }
-    .last-updated { font-size: 11px; color: #5e6b85; margin-bottom: 20px; }
-    .icon-refresh {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        color: #c5cdd9;
-        font-size: 16px;
-        cursor: pointer;
-        transition: all 0.25s ease;
+    .header h1 {
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.4px;
+        line-height: 1.15;
+    }
+    .coords {
+        font-size: 11px;
+        color: #5e6b85;
         margin-top: 4px;
+        font-variant-numeric: tabular-nums;
     }
-    .icon-refresh:hover {
-        background: rgba(255,255,255,0.1);
-        color: #fff;
-        transform: rotate(90deg);
+    .header-right { text-align: right; flex-shrink: 0; }
+    .clock {
+        font-size: 24px;
+        font-weight: 300;
+        color: #e5eaf3;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.5px;
+        line-height: 1;
     }
+    .date { font-size: 12px; color: #8b95a8; margin-top: 4px; }
+    .last-updated { font-size: 11px; color: #5e6b85; margin-top: 3px; }
+
     .top-bar {
         display: flex;
         gap: 8px;
-        margin-bottom: 20px;
+        margin: 18px 0 18px;
         flex-wrap: wrap;
     }
     .btn, .select-model {
         flex: 1;
-        min-width: 130px;
+        min-width: 120px;
         padding: 11px 14px;
         background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.09);
         border-radius: 14px;
         color: #c5cdd9;
         font-size: 13px;
         cursor: pointer;
         font-family: inherit;
-        transition: all 0.25s ease;
+        transition: transform 0.18s cubic-bezier(0.16,1,0.3,1),
+                    background 0.18s ease,
+                    border-color 0.18s ease,
+                    color 0.18s ease;
+        will-change: transform;
     }
     .btn:hover, .select-model:hover {
         background: rgba(255,255,255,0.09);
         color: #fff;
-        border-color: rgba(94,184,255,0.3);
+        border-color: rgba(94,184,255,0.35);
+        transform: translateY(-1px);
     }
+    .btn:active, .select-model:active { transform: scale(0.97); }
     .select-model { text-align: left; }
     .select-model option { background: #141b2e; color: #fff; }
+
+    .icon-refresh {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.09);
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        color: #c5cdd9;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), background 0.2s ease, border-color 0.2s ease;
+        flex-shrink: 0;
+    }
+    .icon-refresh:hover {
+        background: rgba(94,184,255,0.12);
+        border-color: rgba(94,184,255,0.35);
+        color: #5eb8ff;
+        transform: rotate(180deg);
+    }
+    .icon-refresh.spinning { animation: spin 0.8s linear infinite; }
+
     .current {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: linear-gradient(135deg, rgba(94,184,255,0.09), rgba(124,140,255,0.04));
-        border: 1px solid rgba(94,184,255,0.13);
+        background: linear-gradient(135deg, rgba(94,184,255,0.10), rgba(124,140,255,0.045));
+        border: 1px solid rgba(94,184,255,0.15);
         padding: 22px 24px;
         border-radius: 22px;
         margin-bottom: 8px;
         flex-wrap: wrap;
         gap: 18px;
-        transition: border-color 0.3s ease;
+        transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        box-shadow: 0 0 0 rgba(94,184,255,0);
+        will-change: transform;
     }
-    .current:hover { border-color: rgba(94,184,255,0.25); }
+    .current:hover {
+        border-color: rgba(94,184,255,0.30);
+        box-shadow: 0 12px 40px -12px rgba(94,184,255,0.25);
+    }
+    .current.bump { animation: pulseOnce 0.6s cubic-bezier(0.16,1,0.3,1); }
     .current-left { display: flex; align-items: center; gap: 18px; }
-    .current-icon { font-size: 72px; line-height: 1; }
-    .current-temp { font-size: 56px; font-weight: 200; line-height: 1; }
+    .current-icon {
+        font-size: 72px;
+        line-height: 1;
+        transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+        will-change: transform;
+        display: inline-block;
+    }
+    .current-icon.flip { transform: scale(1.15) rotate(-6deg); }
+    .current-temp {
+        font-size: 56px;
+        font-weight: 200;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -1px;
+    }
     .current-desc { font-size: 14px; color: #c5cdd9; margin-top: 6px; }
     .current-right {
         display: grid;
-        gap: 8px;
+        gap: 9px;
         font-size: 12.5px;
         color: #8b95a8;
-        min-width: 170px;
+        min-width: 175px;
     }
     .current-right .row {
         display: flex;
         justify-content: space-between;
         gap: 16px;
+        transition: color 0.2s ease;
     }
-    .current-right .row span:last-child { color: #fff; font-weight: 600; }
+    .current-right .row:hover span:last-child { color: #5eb8ff; }
+    .current-right .row span:last-child {
+        color: #fff;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        transition: color 0.2s ease;
+    }
+
     .models-row {
         font-size: 11px;
         color: #5e6b85;
         text-align: center;
         margin-bottom: 20px;
         padding: 0 4px;
+        min-height: 14px;
+        font-variant-numeric: tabular-nums;
+        animation: fadeIn 0.5s ease;
     }
     .models-row b { color: #8b95a8; font-weight: 600; }
+
     .section-title {
         font-size: 11.5px;
         font-weight: 600;
         color: #8b95a8;
         text-transform: uppercase;
-        letter-spacing: 1.4px;
-        margin: 22px 0 14px;
+        letter-spacing: 1.6px;
+        margin: 24px 0 14px;
+        opacity: 0;
+        animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
     }
+
     .hourly {
         display: flex;
         overflow-x: auto;
         gap: 4px;
-        padding: 4px 0 10px;
+        padding: 4px 0 12px;
         scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.15) transparent;
     }
     .hourly::-webkit-scrollbar { height: 3px; }
     .hourly::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    .hourly::-webkit-scrollbar-track { background: transparent; }
+
     .hour-item {
         flex-shrink: 0;
         text-align: center;
-        min-width: 62px;
+        min-width: 64px;
         padding: 12px 6px;
         border-radius: 14px;
-        transition: background 0.25s ease, transform 0.25s ease;
+        transition: transform 0.22s cubic-bezier(0.16,1,0.3,1),
+                    background 0.22s ease;
+        will-change: transform;
+        opacity: 0;
+        animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
     }
     .hour-item:hover {
-        background: rgba(255,255,255,0.04);
-        transform: translateY(-2px);
+        background: rgba(255,255,255,0.05);
+        transform: translate3d(0, -3px, 0);
     }
     .hour-item.now {
-        background: rgba(94,184,255,0.12);
-        border: 1px solid rgba(94,184,255,0.2);
+        background: rgba(94,184,255,0.14);
+        border: 1px solid rgba(94,184,255,0.25);
+        box-shadow: 0 6px 20px -8px rgba(94,184,255,0.5);
     }
-    .hour-item .h-time { font-size: 11.5px; color: #8b95a8; margin-bottom: 8px; }
-    .hour-item.now .h-time { color: #5eb8ff; font-weight: 600; }
+    .hour-item .h-time {
+        font-size: 11.5px;
+        color: #8b95a8;
+        margin-bottom: 8px;
+        font-variant-numeric: tabular-nums;
+        transition: color 0.2s ease;
+    }
+    .hour-item.now .h-time { color: #5eb8ff; font-weight: 700; }
     .hour-item .h-icon { font-size: 22px; margin-bottom: 6px; display: block; }
-    .hour-item .h-temp { font-size: 14px; font-weight: 600; }
-    .hour-item .h-rain { font-size: 10px; color: #5eb8ff; margin-top: 2px; }
+    .hour-item .h-temp {
+        font-size: 14px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    .hour-item .h-rain {
+        font-size: 10px;
+        color: #5eb8ff;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+    }
+
     .week-list {
-        background: rgba(255,255,255,0.02);
+        background: rgba(255,255,255,0.025);
         border: 1px solid rgba(255,255,255,0.05);
         border-radius: 16px;
         padding: 4px 14px;
@@ -177,20 +305,36 @@
         border-bottom: 1px solid rgba(255,255,255,0.04);
         gap: 10px;
         font-size: 13.5px;
-        transition: background 0.25s ease;
+        transition: background 0.2s ease, transform 0.2s ease;
+        will-change: transform;
+        opacity: 0;
+        animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
     }
-    .day-row:hover { background: rgba(255,255,255,0.02); }
+    .day-row:hover {
+        background: rgba(94,184,255,0.04);
+        transform: translateX(2px);
+    }
     .day-row:last-child { border-bottom: none; }
     .day-name { color: #c5cdd9; }
     .day-name.today { color: #5eb8ff; font-weight: 700; }
     .day-icon { font-size: 22px; text-align: center; }
     .day-desc { color: #8b95a8; font-size: 12.5px; }
-    .day-rain { color: #5eb8ff; font-size: 12px; text-align: right; }
-    .day-temp { text-align: right; font-weight: 600; }
+    .day-rain {
+        color: #5eb8ff;
+        font-size: 12px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+    .day-temp {
+        text-align: right;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
     .day-temp .min { color: #8b95a8; font-weight: 400; margin-right: 8px; }
+
     .fishing-block {
-        background: linear-gradient(135deg, rgba(74,217,160,0.06), rgba(94,184,255,0.04));
-        border: 1px solid rgba(74,217,160,0.12);
+        background: linear-gradient(135deg, rgba(74,217,160,0.07), rgba(94,184,255,0.04));
+        border: 1px solid rgba(74,217,160,0.15);
         border-radius: 16px;
         padding: 16px 18px;
     }
@@ -199,22 +343,26 @@
         color: #8b95a8;
         margin-bottom: 4px;
     }
-    .fishing-header b { color: #c5cdd9; font-weight: 600; }
+    .fishing-header b { color: #d5dde8; font-weight: 600; }
     .fishing-conditions {
         font-size: 12px;
         color: #8b95a8;
         margin-bottom: 14px;
         padding-bottom: 12px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        font-variant-numeric: tabular-nums;
     }
     .fishing-conditions span { color: #fff; font-weight: 600; }
+
     .fish-item {
         display: grid;
-        grid-template-columns: 118px 1fr 38px;
+        grid-template-columns: 130px 1fr 38px;
         align-items: center;
         gap: 12px;
         padding: 5px 0;
         font-size: 12.5px;
+        opacity: 0;
+        animation: fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
     }
     .fish-name { color: #c5cdd9; }
     .fish-bar {
@@ -226,15 +374,31 @@
     .fish-bar-fill {
         height: 100%;
         border-radius: 3px;
-        transition: width 0.6s ease;
+        transform-origin: left center;
+        animation: barGrow 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
+        will-change: transform;
     }
     .fish-score {
         text-align: right;
         font-weight: 700;
         font-size: 12px;
         color: #fff;
+        font-variant-numeric: tabular-nums;
     }
+
+    .skeleton {
+        background: linear-gradient(90deg,
+            rgba(255,255,255,0.03) 25%,
+            rgba(255,255,255,0.08) 50%,
+            rgba(255,255,255,0.03) 75%);
+        background-size: 400px 100%;
+        animation: shimmer 1.4s linear infinite;
+        border-radius: 6px;
+        color: transparent;
+    }
+
     .loading { text-align: center; color: #8b95a8; padding: 20px; font-size: 13px; }
+
     .error-box {
         background: rgba(255,100,100,0.08);
         border: 1px solid rgba(255,100,100,0.2);
@@ -244,6 +408,7 @@
         text-align: center;
         margin-bottom: 18px;
         font-size: 13px;
+        animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1);
     }
     .note-box {
         background: rgba(255,184,74,0.08);
@@ -254,24 +419,31 @@
         text-align: center;
         margin-bottom: 14px;
         font-size: 12.5px;
+        animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1);
     }
+
     @media (max-width: 560px) {
-        .container { padding: 22px 18px; }
+        body { padding: 14px 10px 40px; }
+        .container { padding: 22px 18px; border-radius: 24px; }
         h1 { font-size: 22px; }
-        .clock { font-size: 18px; }
-        .current { flex-direction: column; text-align: center; }
+        .clock { font-size: 19px; }
+        .current { flex-direction: column; text-align: center; padding: 20px; }
         .current-left { flex-direction: column; gap: 8px; }
-        .current-icon { font-size: 60px; }
-        .current-temp { font-size: 48px; }
+        .current-icon { font-size: 62px; }
+        .current-temp { font-size: 50px; }
         .current-right { width: 100%; text-align: left; }
         .day-row { grid-template-columns: 76px 30px 1fr 52px; font-size: 12.5px; gap: 6px; }
         .day-desc { display: none; }
-        .fish-item { grid-template-columns: 96px 1fr 34px; gap: 8px; }
+        .fish-item { grid-template-columns: 100px 1fr 34px; gap: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="container" id="container">
     <div class="header">
         <div>
             <h1 id="cityName">Санкт-Петербург</h1>
@@ -279,12 +451,12 @@
         </div>
         <div class="header-right">
             <div class="clock" id="clock">--:--</div>
-            <div class="date" id="currentDate">Загрузка...</div>
+            <div class="date" id="currentDate">--</div>
             <div class="last-updated" id="lastUpdated"></div>
         </div>
     </div>
 
-    <div class="top-bar" style="margin-top:16px;">
+    <div class="top-bar">
         <button class="btn" onclick="detectLocation()">Моё местоположение</button>
         <button class="btn" onclick="resetToSPB()">Санкт-Петербург</button>
         <select class="select-model" id="modelSelect" onchange="loadWeather(true)">
@@ -293,13 +465,13 @@
             <option value="icon_seamless">ICON (Германия)</option>
             <option value="gfs_seamless">GFS (США)</option>
         </select>
-        <button class="icon-refresh" onclick="loadWeather(true)" title="Обновить">R</button>
+        <button class="icon-refresh" id="refreshBtn" onclick="loadWeather(true)" title="Обновить">R</button>
     </div>
 
     <div id="statusBox"></div>
-    <div id="errorMessage" class="error-box" style="display: none;"></div>
+    <div id="errorMessage" class="error-box" style="display:none;"></div>
 
-    <div class="current">
+    <div class="current" id="currentCard">
         <div class="current-left">
             <div class="current-icon" id="currentIcon">·</div>
             <div>
@@ -330,28 +502,39 @@
 </div>
 
 <script>
-// ==== Конфиг ====
+// ============================================================
+// КОНФИГ
+// ============================================================
 var SPB_LAT = 59.9386;
 var SPB_LON = 30.3141;
 var lat = SPB_LAT;
 var lon = SPB_LON;
-var CACHE_KEY = 'weather_cache_v4';
-var API_REFRESH_MS = 10 * 60 * 1000;   // данные с API — раз в 10 мин
-var UI_TICK_MS = 30 * 1000;            // UI — раз в 30 сек
+var CACHE_KEY = 'weather_cache_v5';
+var API_REFRESH_MS = 10 * 60 * 1000;   // перезапрос данных раз в 10 мин
+var UI_TICK_MS = 30 * 1000;            // обновление UI раз в 30 сек
 var REQUEST_TIMEOUT_MS = 8000;
 
 var cityNameEl = document.getElementById('cityName');
 var coordsEl = document.getElementById('coords');
 var statusBox = document.getElementById('statusBox');
 var errorBox = document.getElementById('errorMessage');
+var refreshBtn = document.getElementById('refreshBtn');
 
-// Глобальное состояние
+// Веса моделей (ECMWF точнее всех в Европе)
+var MODEL_WEIGHTS = {
+    'ecmwf_ifs04': 0.40,
+    'icon_seamless': 0.35,
+    'gfs_seamless': 0.25
+};
+
 var lastData = null;
 var lastUpdateMs = 0;
-var lastHourKey = '';
+var lastHourRendered = '';
 var requestToken = 0;
 
-// ==== Утилиты ====
+// ============================================================
+// УТИЛИТЫ
+// ============================================================
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
 function showStatus(text, type) {
@@ -364,39 +547,36 @@ function fetchWithTimeout(url, ms) {
     return new Promise(function(resolve, reject) {
         var done = false;
         var timer = setTimeout(function() {
-            if (done) return;
-            done = true;
+            if (done) return; done = true;
             reject(new Error('timeout'));
         }, ms);
         fetch(url).then(function(res) {
-            if (done) return;
-            done = true;
+            if (done) return; done = true;
             clearTimeout(timer);
             resolve(res);
         }).catch(function(err) {
-            if (done) return;
-            done = true;
+            if (done) return; done = true;
             clearTimeout(timer);
             reject(err);
         });
     });
 }
 
-function settledWrap(promise) {
-    return promise.then(
-        function(v) { return { status: 'fulfilled', value: v }; },
-        function(e) { return { status: 'rejected', reason: e }; }
+function settledWrap(p) {
+    return p.then(
+        function(v) { return { ok: true, value: v }; },
+        function(e) { return { ok: false, error: e }; }
     );
 }
 
-function nowHourKey() {
+function deviceHourKey() {
     var d = new Date();
     return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours());
 }
 
-function formatClock() {
+function updateClock() {
     var d = new Date();
-    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    document.getElementById('clock').textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
 }
 
 function updateDate() {
@@ -405,10 +585,6 @@ function updateDate() {
     var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
     document.getElementById('currentDate').textContent =
         days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
-}
-
-function updateClock() {
-    document.getElementById('clock').textContent = formatClock();
 }
 
 function updateLastUpdated() {
@@ -431,16 +607,35 @@ function updateCoords() {
     }
 }
 
-// ==== Кэш (привязан к координатам) ====
+// Плавный count-up числа
+function animateNumber(el, from, to, suffix, duration) {
+    if (isNaN(to)) { el.textContent = '--'; return; }
+    if (from === to || Math.abs(from - to) < 0.5) {
+        el.textContent = Math.round(to) + (suffix || '');
+        return;
+    }
+    var start = performance.now();
+    var dur = duration || 500;
+    function step(now) {
+        var t = Math.min(1, (now - start) / dur);
+        // easeOutCubic
+        var eased = 1 - Math.pow(1 - t, 3);
+        var val = from + (to - from) * eased;
+        el.textContent = Math.round(val) + (suffix || '');
+        if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// ============================================================
+// КЭШ
+// ============================================================
 function saveCache(data, source) {
     try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
-            data: data,
-            source: source,
-            timestamp: Date.now(),
+            data: data, source: source, timestamp: Date.now(),
             city: cityNameEl.textContent,
-            lat: lat,
-            lon: lon
+            lat: lat, lon: lon
         }));
     } catch (e) {}
 }
@@ -452,14 +647,15 @@ function loadCache() {
         var obj = JSON.parse(raw);
         if (!obj || !obj.timestamp || !obj.data) return null;
         if (Date.now() - obj.timestamp > 24 * 3600 * 1000) return null;
-        // Только если координаты те же (погрешность 0.1 градуса)
         if (typeof obj.lat !== 'number' || typeof obj.lon !== 'number') return null;
         if (Math.abs(obj.lat - lat) > 0.1 || Math.abs(obj.lon - lon) > 0.1) return null;
         return obj;
     } catch (e) { return null; }
 }
 
-// ==== Погодные коды WMO ====
+// ============================================================
+// WMO КОДЫ
+// ============================================================
 function getWeatherIcon(code) {
     if (code === 0) return '☀';
     if (code === 1) return '🌤';
@@ -472,10 +668,18 @@ function getWeatherIcon(code) {
     if (code >= 80 && code <= 82) return '🌧';
     if (code >= 85 && code <= 86) return '❄';
     if (code >= 95) return '⛈';
-    return '·';
+    // Fallback на диапазоны
+    if (code >= 4 && code <= 44) return '☁';
+    if (code === 49) return '🌫';
+    if (code >= 58 && code <= 60) return '🌧';
+    if (code >= 68 && code <= 70) return '🌧';
+    if (code >= 78 && code <= 79) return '❄';
+    if (code >= 83 && code <= 84) return '🌧';
+    if (code >= 87 && code <= 94) return '☁';
+    if (code >= 96) return '⛈';
+    return '☁';
 }
 
-// Без слова "морось" — как в Яндексе
 function getWeatherDesc(code) {
     if (code === 0) return 'Ясно';
     if (code === 1) return 'Малооблачно';
@@ -499,10 +703,64 @@ function getWeatherDesc(code) {
     if (code === 85 || code === 86) return 'Снегопад';
     if (code === 95) return 'Гроза';
     if (code === 96 || code === 99) return 'Гроза с градом';
-    return 'Неизвестно';
+    // Fallback для промежуточных
+    if (code >= 4 && code <= 44) return 'Облачно';
+    if (code === 49) return 'Туман';
+    if (code >= 58 && code <= 60) return 'Дождь';
+    if (code >= 68 && code <= 70) return 'Дождь';
+    if (code >= 78 && code <= 79) return 'Снег';
+    if (code >= 83 && code <= 84) return 'Ливень';
+    if (code >= 87 && code <= 94) return 'Облачно';
+    if (code >= 96) return 'Гроза';
+    return 'Облачно';
 }
 
-// ==== Open-Meteo ====
+// Уровень «плохости» кода — для разрешения ничьих
+function codeSeverity(code) {
+    if (code === 0) return 0;
+    if (code === 1) return 1;
+    if (code === 2) return 2;
+    if (code === 3) return 3;
+    if (code === 45 || code === 48) return 4;
+    if (code >= 51 && code <= 57) return 5;
+    if (code >= 61 && code <= 67) return 6;
+    if (code >= 71 && code <= 77) return 7;
+    if (code >= 80 && code <= 82) return 8;
+    if (code >= 85 && code <= 86) return 9;
+    if (code >= 95) return 10;
+    return 3;
+}
+
+// ГЛАВНЫЙ ФИКС: голосование по большинству, а не среднее
+function pickConsensusCode(codes) {
+    var clean = [];
+    for (var i = 0; i < codes.length; i++) {
+        if (typeof codes[i] === 'number' && !isNaN(codes[i])) clean.push(codes[i]);
+    }
+    if (clean.length === 0) return 0;
+    if (clean.length === 1) return clean[0];
+
+    var counts = {};
+    for (var j = 0; j < clean.length; j++) {
+        counts[clean[j]] = (counts[clean[j]] || 0) + 1;
+    }
+    var best = null;
+    var bestCount = 0;
+    var bestSev = -1;
+    for (var key in counts) {
+        var c = parseInt(key, 10);
+        var cnt = counts[key];
+        var sev = codeSeverity(c);
+        if (cnt > bestCount || (cnt === bestCount && sev > bestSev)) {
+            best = c; bestCount = cnt; bestSev = sev;
+        }
+    }
+    return best === null ? 0 : best;
+}
+
+// ============================================================
+// OPEN-METEO
+// ============================================================
 function normalizeOpenMeteo(d) {
     return {
         current: {
@@ -550,81 +808,71 @@ async function fetchModel(modelName) {
     return normalizeOpenMeteo(data);
 }
 
-// ==== Усреднение моделей ====
-function pickDominantCode(codes) {
-    var max = 0;
-    for (var i = 0; i < codes.length; i++) {
-        var c = codes[i] || 0;
-        if (c > max) max = c;
-    }
-    return max;
-}
+// Взвешенное среднее по моделям + голосование по коду
+function blendModels(models, weights) {
+    if (models.length === 0) throw new Error('empty');
+    if (models.length === 1) return models[0];
 
-function averageNormalized(list) {
-    if (list.length === 0) throw new Error('empty');
-    if (list.length === 1) return list[0];
-    var n = list.length;
-    var base = list[0];
+    var totalW = 0;
+    for (var i = 0; i < weights.length; i++) totalW += weights[i];
+    if (totalW <= 0) { weights = []; for (var k = 0; k < models.length; k++) weights.push(1); totalW = models.length; }
+
+    var base = models[0];
+
+    function wavg(fn) {
+        var sum = 0;
+        for (var i = 0; i < models.length; i++) {
+            var v = fn(models[i]);
+            if (typeof v === 'number' && !isNaN(v)) sum += v * (weights[i] / totalW);
+        }
+        return sum;
+    }
 
     var avgCurrent = {
         time: base.current.time,
-        temp: 0, feels: 0, humidity: 0, wind: 0, pressure: 0, uv: 0,
-        code: pickDominantCode(list.map(function(d) { return d.current.code; }))
+        temp: wavg(function(m) { return m.current.temp; }),
+        feels: wavg(function(m) { return m.current.feels; }),
+        humidity: wavg(function(m) { return m.current.humidity; }),
+        wind: wavg(function(m) { return m.current.wind; }),
+        pressure: wavg(function(m) { return m.current.pressure; }),
+        uv: wavg(function(m) { return m.current.uv; }),
+        code: pickConsensusCode(models.map(function(m) { return m.current.code; }))
     };
-    for (var i = 0; i < n; i++) {
-        avgCurrent.temp += list[i].current.temp || 0;
-        avgCurrent.feels += list[i].current.feels || 0;
-        avgCurrent.humidity += list[i].current.humidity || 0;
-        avgCurrent.wind += list[i].current.wind || 0;
-        avgCurrent.pressure += list[i].current.pressure || 0;
-        avgCurrent.uv += (list[i].current.uv || 0);
-    }
-    avgCurrent.temp /= n;
-    avgCurrent.feels /= n;
-    avgCurrent.humidity /= n;
-    avgCurrent.wind /= n;
-    avgCurrent.pressure /= n;
-    avgCurrent.uv /= n;
 
     var avgHourly = base.hourly.map(function(h, idx) {
-        var t = 0, w = 0, r = 0, p = 0, cnt = 0;
-        for (var i = 0; i < n; i++) {
-            if (list[i].hourly[idx]) {
-                t += list[i].hourly[idx].temp || 0;
-                w += list[i].hourly[idx].code || 0;
-                r += list[i].hourly[idx].rain || 0;
-                p += list[i].hourly[idx].pressure || 0;
-                cnt++;
+        var codes = [];
+        for (var i = 0; i < models.length; i++) {
+            if (models[i].hourly[idx]) codes.push(models[i].hourly[idx].code);
+        }
+        var t = 0, r = 0, p = 0, cnt = 0;
+        for (var j = 0; j < models.length; j++) {
+            if (models[j].hourly[idx]) {
+                if (typeof models[j].hourly[idx].temp === 'number') { t += models[j].hourly[idx].temp * (weights[j]/totalW); cnt++; }
+                if (typeof models[j].hourly[idx].rain === 'number') r += models[j].hourly[idx].rain * (weights[j]/totalW);
+                if (typeof models[j].hourly[idx].pressure === 'number') p += models[j].hourly[idx].pressure * (weights[j]/totalW);
             }
         }
-        return {
-            time: h.time,
-            temp: t / cnt,
-            code: Math.round(w / cnt),
-            rain: r / cnt,
-            pressure: p / cnt
-        };
+        return { time: h.time, temp: t, code: pickConsensusCode(codes), rain: r, pressure: p };
     });
 
     var avgDaily = base.daily.map(function(d, idx) {
-        var mx = 0, mn = 0, r = 0, w = 0, cnt = 0;
-        for (var i = 0; i < n; i++) {
-            if (list[i].daily[idx]) {
-                mx += list[i].daily[idx].max || 0;
-                mn += list[i].daily[idx].min || 0;
-                r += list[i].daily[idx].rain || 0;
-                w += list[i].daily[idx].code || 0;
-                cnt++;
+        var codes = [];
+        for (var i = 0; i < models.length; i++) {
+            if (models[i].daily[idx]) codes.push(models[i].daily[idx].code);
+        }
+        var mx = 0, mn = 0, r = 0;
+        for (var j = 0; j < models.length; j++) {
+            if (models[j].daily[idx]) {
+                if (typeof models[j].daily[idx].max === 'number') mx += models[j].daily[idx].max * (weights[j]/totalW);
+                if (typeof models[j].daily[idx].min === 'number') mn += models[j].daily[idx].min * (weights[j]/totalW);
+                if (typeof models[j].daily[idx].rain === 'number') r += models[j].daily[idx].rain * (weights[j]/totalW);
             }
         }
         return {
             time: d.time,
-            code: Math.round(w / cnt),
-            max: mx / cnt,
-            min: mn / cnt,
-            rain: r / cnt,
-            sunrise: d.sunrise,
-            sunset: d.sunset
+            code: pickConsensusCode(codes),
+            max: mx, min: mn, rain: r,
+            sunrise: d.sunrise, sunset: d.sunset
         };
     });
 
@@ -641,22 +889,23 @@ async function fetchFromOpenMeteo() {
             settledWrap(fetchModel('gfs_seamless'))
         ]);
         var ok = [];
-        var temps = [];
+        var weights = [];
+        var names = ['ECMWF', 'ICON', 'GFS'];
+        var keys = ['ecmwf_ifs04', 'icon_seamless', 'gfs_seamless'];
+        var parts = [];
         for (var i = 0; i < settled.length; i++) {
-            if (settled[i].status === 'fulfilled') {
+            if (settled[i].ok) {
                 ok.push(settled[i].value);
-                temps.push(Math.round(settled[i].value.current.temp));
+                weights.push(MODEL_WEIGHTS[keys[i]] || 0.33);
+                parts.push(names[i] + ' ' + Math.round(settled[i].value.current.temp) + '°');
             }
         }
         if (ok.length === 0) throw new Error('Все модели Open-Meteo упали');
-        var data = averageNormalized(ok);
-        var names = ['ECMWF', 'ICON', 'GFS'];
-        var parts = [];
-        for (var k = 0; k < temps.length; k++) parts.push(names[k] + ' ' + temps[k] + '°');
+        var data = blendModels(ok, weights);
         return {
             source: 'Open-Meteo x' + ok.length,
             data: data,
-            modelsInfo: parts.join(' · ') + ' → среднее'
+            modelsInfo: parts.join(' · ') + ' → ' + Math.round(data.current.temp) + '°'
         };
     }
 
@@ -664,7 +913,9 @@ async function fetchFromOpenMeteo() {
     return { source: 'Open-Meteo ' + model, data: single, modelsInfo: '' };
 }
 
-// ==== wttr.in (резерв) ====
+// ============================================================
+// WTTR.IN (резерв)
+// ============================================================
 function parseWttrTime(s) {
     if (!s) return '06:00';
     s = s.trim();
@@ -755,11 +1006,11 @@ async function fetchFromWttr() {
     return { source: 'wttr.in', data: normalizeWttr(data), modelsInfo: '' };
 }
 
-// ==== Главная функция ====
+// ============================================================
+// ГЛАВНАЯ ЗАГРУЗКА
+// ============================================================
 async function loadWeather(force) {
-    // Если вкладка скрыта и не force — не дёргаем API
     if (!force && document.hidden) return;
-    // Не дёргаем, если недавно обновляли (< 5 мин) и не force
     if (!force && lastUpdateMs && (Date.now() - lastUpdateMs) < 5 * 60 * 1000) {
         updateLastUpdated();
         return;
@@ -772,6 +1023,7 @@ async function loadWeather(force) {
     updateClock();
     errorBox.style.display = 'none';
     showStatus('', '');
+    refreshBtn.classList.add('spinning');
 
     var result = null;
 
@@ -781,17 +1033,15 @@ async function loadWeather(force) {
         console.log('Open-Meteo упал:', e.message);
     }
 
-    if (myToken !== requestToken) return; // устаревший запрос
+    if (myToken !== requestToken) { refreshBtn.classList.remove('spinning'); return; }
 
     if (!result) {
-        try {
-            result = await fetchFromWttr();
-        } catch (e) {
-            console.log('wttr.in упал:', e.message);
-        }
+        try { result = await fetchFromWttr(); }
+        catch (e) { console.log('wttr.in упал:', e.message); }
     }
 
-    if (myToken !== requestToken) return;
+    if (myToken !== requestToken) { refreshBtn.classList.remove('spinning'); return; }
+    refreshBtn.classList.remove('spinning');
 
     if (!result) {
         var cached = loadCache();
@@ -800,7 +1050,7 @@ async function loadWeather(force) {
             if (cached.city) cityNameEl.textContent = cached.city;
             lastData = cached.data;
             lastUpdateMs = cached.timestamp;
-            renderAll(cached.data);
+            renderAll(cached.data, true);
             updateCoords();
             showStatus('Нет связи. Данные ' + ageMin + ' мин назад (' + cached.source + ').', 'warn');
         } else {
@@ -812,31 +1062,48 @@ async function loadWeather(force) {
 
     lastData = result.data;
     lastUpdateMs = Date.now();
-    lastHourKey = '';
-    renderAll(result.data);
+    lastHourRendered = '';
+    renderAll(result.data, false);
     updateCoords();
     saveCache(result.data, result.source);
     updateLastUpdated();
 
-    if (result.modelsInfo) {
-        document.getElementById('modelsRow').textContent = result.modelsInfo;
-    } else {
-        document.getElementById('modelsRow').textContent = 'Источник: ' + result.source;
-    }
+    document.getElementById('modelsRow').textContent = result.modelsInfo || ('Источник: ' + result.source);
 }
 
-// ==== Рендер ====
-function renderAll(data) {
+// ============================================================
+// РЕНДЕР
+// ============================================================
+var lastTempValue = null;
+
+function renderAll(data, isCached) {
     var cur = data.current;
 
-    document.getElementById('currentIcon').textContent = getWeatherIcon(cur.code);
-    document.getElementById('currentTemp').textContent = Math.round(cur.temp) + '°';
+    // Иконка
+    var iconEl = document.getElementById('currentIcon');
+    iconEl.textContent = getWeatherIcon(cur.code);
+    iconEl.classList.remove('flip');
+    void iconEl.offsetWidth;
+    iconEl.classList.add('flip');
+    setTimeout(function() { iconEl.classList.remove('flip'); }, 500);
+
+    // Температура с count-up
+    var tempEl = document.getElementById('currentTemp');
+    var targetTemp = cur.temp;
+    if (lastTempValue === null || isCached) {
+        tempEl.textContent = Math.round(targetTemp) + '°';
+    } else {
+        animateNumber(tempEl, lastTempValue, targetTemp, '°', 550);
+    }
+    lastTempValue = targetTemp;
+
     document.getElementById('currentDesc').textContent = getWeatherDesc(cur.code);
     document.getElementById('feelsLike').textContent = Math.round(cur.feels) + '°';
     document.getElementById('humidity').textContent = Math.round(cur.humidity) + '%';
     document.getElementById('windSpeed').textContent = Math.round(cur.wind) + ' м/с';
     document.getElementById('pressure').textContent = Math.round(cur.pressure) + ' гПа';
-    document.getElementById('uvIndex').textContent = (cur.uv !== null && cur.uv !== undefined && !isNaN(cur.uv)) ? Math.round(cur.uv) : '--';
+    document.getElementById('uvIndex').textContent =
+        (cur.uv !== null && cur.uv !== undefined && !isNaN(cur.uv)) ? Math.round(cur.uv) : '--';
 
     if (data.daily && data.daily[0]) {
         var sr = (data.daily[0].sunrise || '').slice(11, 16);
@@ -845,6 +1112,13 @@ function renderAll(data) {
         document.getElementById('sunset').textContent = ss || '--:--';
     }
 
+    // Bump-анимация карточки
+    var cc = document.getElementById('currentCard');
+    cc.classList.remove('bump');
+    void cc.offsetWidth;
+    cc.classList.add('bump');
+    setTimeout(function() { cc.classList.remove('bump'); }, 700);
+
     renderHourly(data);
     renderDaily(data);
     renderFishing(cur);
@@ -852,27 +1126,25 @@ function renderAll(data) {
 
 function renderHourly(data) {
     var cur = data.current;
-    var key = (cur.time || '').slice(0, 13) || nowHourKey();
+    var key = (cur.time || '').slice(0, 13) || deviceHourKey();
 
-    // Индекс первого часа >= текущего часа
     var startIdx = 0;
     for (var i = 0; i < data.hourly.length; i++) {
         if ((data.hourly[i].time || '').slice(0, 13) >= key) {
-            startIdx = i;
-            break;
+            startIdx = i; break;
         }
     }
 
     var hourlyEl = document.getElementById('hourly');
     var scrollPos = hourlyEl.scrollLeft;
-
     var html = '';
     var count = 0;
     for (var j = startIdx; j < data.hourly.length && count < 48; j++) {
         var h = data.hourly[j];
         var timeStr = (h.time || '').slice(11, 16);
         var isNow = (count === 0);
-        html += '<div class="hour-item' + (isNow ? ' now' : '') + '">'
+        var delay = Math.min(count * 0.012, 0.4);
+        html += '<div class="hour-item' + (isNow ? ' now' : '') + '" style="animation-delay:' + delay + 's">'
             + '<div class="h-time">' + (isNow ? 'Сейчас' : timeStr) + '</div>'
             + '<span class="h-icon">' + getWeatherIcon(h.code) + '</span>'
             + '<div class="h-temp">' + Math.round(h.temp) + '°</div>'
@@ -882,6 +1154,7 @@ function renderHourly(data) {
     }
     hourlyEl.innerHTML = html || '<div class="loading">Нет данных</div>';
     hourlyEl.scrollLeft = scrollPos;
+    lastHourRendered = key;
 }
 
 function renderDaily(data) {
@@ -893,7 +1166,8 @@ function renderDaily(data) {
         var dd = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
         var isToday = (j === 0);
         var label = isToday ? 'Сегодня' : (j === 1 ? 'Завтра' : dayN[dd.getDay()] + ', ' + dd.getDate() + '.' + (dd.getMonth() + 1));
-        html += '<div class="day-row">'
+        var delay = j * 0.05;
+        html += '<div class="day-row" style="animation-delay:' + delay + 's">'
             + '<div class="day-name' + (isToday ? ' today' : '') + '">' + label + '</div>'
             + '<div class="day-icon">' + getWeatherIcon(d.code) + '</div>'
             + '<div class="day-desc">' + getWeatherDesc(d.code) + '</div>'
@@ -904,7 +1178,9 @@ function renderDaily(data) {
     document.getElementById('forecastList').innerHTML = html || '<div class="loading">Нет данных</div>';
 }
 
-// ==== Клёв — 30 видов ====
+// ============================================================
+// КЛЁВ — 30 рыб
+// ============================================================
 var FISH = [
     { name: 'Щука',              tMin: 4,  tMax: 20, press: 'stable', windMax: 8,  active: [9,10,11,12,1,2,3] },
     { name: 'Окунь',             tMin: 8,  tMax: 22, press: 'any',    windMax: 10, active: [1,2,3,4,5,6,7,8,9,10,11,12] },
@@ -944,7 +1220,6 @@ function isNearSPb() {
 
 function scoreFish(fish, temp, press, wind, month) {
     var score = 0;
-
     if (temp >= fish.tMin && temp <= fish.tMax) score += 45;
     else if (temp >= fish.tMin - 3 && temp <= fish.tMax + 3) score += 22;
     else score += 3;
@@ -963,16 +1238,15 @@ function scoreFish(fish, temp, press, wind, month) {
     else score += 2;
 
     if (fish.active.indexOf(month) >= 0) score += 10;
-
     return Math.min(100, Math.round(score));
 }
 
 function fishBarColor(score) {
-    if (score >= 80) return '#4ad9a0';
-    if (score >= 60) return '#8ee86a';
-    if (score >= 40) return '#ffcc7a';
-    if (score >= 20) return '#ff9a5e';
-    return '#ff7a7a';
+    if (score >= 80) return 'linear-gradient(90deg,#3ac48a,#4ad9a0)';
+    if (score >= 60) return 'linear-gradient(90deg,#6dc75a,#8ee86a)';
+    if (score >= 40) return 'linear-gradient(90deg,#e8b45a,#ffcc7a)';
+    if (score >= 20) return 'linear-gradient(90deg,#e87a4a,#ff9a5e)';
+    return 'linear-gradient(90deg,#e05555,#ff7a7a)';
 }
 
 function renderFishing(cur) {
@@ -995,9 +1269,10 @@ function renderFishing(cur) {
 
     for (var i = 0; i < scored.length; i++) {
         var f = scored[i];
-        html += '<div class="fish-item">'
+        var delay = Math.min(i * 0.02, 0.5);
+        html += '<div class="fish-item" style="animation-delay:' + delay + 's">'
             + '<span class="fish-name">' + f.name + '</span>'
-            + '<div class="fish-bar"><div class="fish-bar-fill" style="width:' + f.score + '%;background:' + fishBarColor(f.score) + '"></div></div>'
+            + '<div class="fish-bar"><div class="fish-bar-fill" style="width:' + f.score + '%;background:' + fishBarColor(f.score) + ';animation-delay:' + (delay + 0.1) + 's"></div></div>'
             + '<span class="fish-score">' + f.score + '</span>'
             + '</div>';
     }
@@ -1005,7 +1280,9 @@ function renderFishing(cur) {
     document.getElementById('fishing').innerHTML = html;
 }
 
-// ==== Геолокация ====
+// ============================================================
+// ГЕОЛОКАЦИЯ
+// ============================================================
 function detectLocation() {
     if (!navigator.geolocation) {
         alert('Геолокация не поддерживается');
@@ -1022,10 +1299,10 @@ function detectLocation() {
             cityNameEl.textContent = 'Моё местоположение';
 
             var myToken = ++requestToken;
-            var nominatimUrl = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
+            var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
                 + lat + '&lon=' + lon + '&zoom=10&accept-language=ru';
 
-            fetchWithTimeout(nominatimUrl, 4000)
+            fetchWithTimeout(url, 4000)
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (myToken !== requestToken) return;
@@ -1038,7 +1315,7 @@ function detectLocation() {
                         if (city) cityNameEl.textContent = city;
                     }
                 })
-                .catch(function() { /* игнорируем — оставим "Моё местоположение" */ })
+                .catch(function() {})
                 .then(function() {
                     if (myToken !== requestToken) return;
                     loadWeather(true);
@@ -1062,17 +1339,18 @@ function resetToSPB() {
     loadWeather(true);
 }
 
-// ==== Tick (UI каждые 30 сек) ====
+// ============================================================
+// TICK
+// ============================================================
 function tick() {
     updateClock();
     updateDate();
     updateLastUpdated();
 
     if (lastData) {
-        var key = nowHourKey();
-        if (key !== lastHourKey) {
-            lastHourKey = key;
-            // Перерисовываем почасовой, чтобы "Сейчас" сдвинулось
+        var key = deviceHourKey();
+        if (lastHourRendered && key !== lastHourRendered) {
+            // Час сменился — обновим почасовой прогноз
             var savedTime = lastData.current.time;
             lastData.current.time = key + ':00';
             renderHourly(lastData);
@@ -1080,13 +1358,11 @@ function tick() {
         }
     }
 
-    // Авто-рефетч
     if (!document.hidden && lastUpdateMs && (Date.now() - lastUpdateMs) > API_REFRESH_MS) {
         loadWeather(false);
     }
 }
 
-// Обновляем при возврате на вкладку
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         updateClock();
@@ -1097,7 +1373,9 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
-// ==== Запуск ====
+// ============================================================
+// СТАРТ
+// ============================================================
 updateDate();
 updateClock();
 updateCoords();
@@ -1107,7 +1385,7 @@ if (cached) {
     if (cached.city) cityNameEl.textContent = cached.city;
     lastData = cached.data;
     lastUpdateMs = cached.timestamp;
-    renderAll(cached.data);
+    renderAll(cached.data, true);
     updateLastUpdated();
 }
 

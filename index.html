@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Погода в Санкт-Петербурге</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #fff;
+        display: flex; justify-content: center; align-items: flex-start;
+        padding: 40px 20px;
+    }
+    .container {
+        width: 100%; max-width: 600px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px; padding: 30px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    h1 { font-size: 24px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .date { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+    .current {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 30px; background: rgba(255,255,255,0.03);
+        padding: 20px; border-radius: 20px;
+    }
+    .current-left { display: flex; align-items: center; gap: 15px; }
+    .current-icon { font-size: 64px; line-height: 1; }
+    .current-temp { font-size: 48px; font-weight: 300; line-height: 1; }
+    .current-desc { font-size: 14px; color: #94a3b8; margin-top: 5px; }
+    .current-details {
+        display: flex; flex-direction: column; gap: 8px;
+        font-size: 13px; color: #cbd5e1; text-align: right;
+    }
+    .forecast-title {
+        font-size: 14px; font-weight: 600; color: #94a3b8;
+        text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 15px; padding-left: 5px;
+    }
+    .forecast-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 5px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .forecast-item:last-child { border-bottom: none; }
+    .f-day { width: 70px; font-size: 14px; color: #e2e8f0; }
+    .f-icon { font-size: 24px; width: 40px; text-align: center; }
+    .f-desc { flex: 1; font-size: 13px; color: #94a3b8; padding-left: 10px; }
+    .f-temps { display: flex; gap: 15px; font-size: 14px; font-weight: 500; width: 80px; justify-content: flex-end; }
+    .f-min { color: #64748b; font-weight: 400; }
+    .loading { text-align: center; color: #94a3b8; padding: 20px; font-size: 14px; }
+    .error-box {
+        background: rgba(239,68,68,0.1);
+        border: 1px solid rgba(239,68,68,0.3);
+        color: #fca5a5; padding: 15px; border-radius: 12px;
+        text-align: center; margin-bottom: 20px; font-size: 14px;
+    }
+    max-width: 520px {
+        .container { padding: 20px; }
+        .current { flex-direction: column; gap: 20px; text-align: center; }
+        .current-left { flex-direction: column; }
+        .current-details { text-align: center; }
+        .f-desc { display: none; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Санкт-Петербург</h1>
+    <div class="date" id="currentDate">Загрузка...</div>
+    <div id="errorMessage" class="error-box" style="display: none;"></div>
+
+    <div class="current" id="currentWeather">
+        <div class="current-left">
+            <div class="current-icon" id="currentIcon">⏳</div>
+            <div>
+                <div class="current-temp" id="currentTemp">--°</div>
+                <div class="current-desc" id="currentDesc">Загрузка...</div>
+            </div>
+        </div>
+        <div class="current-details">
+            <div>Ощущается: <span id="feelsLike">--°</span></div>
+            <div>Влажность: <span id="humidity">--%</span></div>
+            <div>Ветер: <span id="windSpeed">— м/с</span></div>
+        </div>
+    </div>
+
+    <div class="forecast-title">Прогноз на 7 дней</div>
+    <div class="forecast-list" id="forecastList">
+        <div class="loading">Загрузка прогноза...</div>
+    </div>
+</div>
+
+<script>
+    function getWeatherIcon(code) {
+        const icons = {
+            0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
+            51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',
+            71:'❄️',73:'❄️',75:'❄️',80:'🌧️',81:'🌧️',82:'🌧️',
+            95:'⛈️',96:'⛈️',99:'⛈️'
+        };
+        return icons[code] || '❓';
+    }
+
+    function getWeatherDesc(code) {
+        const d = {
+            0:'Ясно',1:'Преимущественно ясно',2:'Переменная облачность',3:'Пасмурно',
+            45:'Туман',48:'Туман',51:'Слабая морось',53:'Морось',55:'Сильная морось',
+            61:'Небольшой дождь',63:'Дождь',65:'Сильный дождь',
+            71:'Небольшой снег',73:'Снег',75:'Сильный снег',
+            80:'Ливень',81:'Сильный ливень',82:'Очень сильный ливень',
+            95:'Гроза',96:'Гроза с градом',99:'Сильная гроза'
+        };
+        return d[code] || 'Неизвестно';
+    }
+
+    function updateDate() {
+        const now = new Date();
+        const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+        const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+        document.getElementById('currentDate').textContent =
+            days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    }
+
+    async function loadWeather() {
+        updateDate();
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=59.9386&longitude=30.3141&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe/Moscow&forecast_days=7';
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Ошибка сервера: ' + response.status);
+            const data = await response.json();
+
+            const current = data.current;
+            document.getElementById('currentIcon').textContent = getWeatherIcon(current.weather_code);
+            document.getElementById('currentTemp').textContent = Math.round(current.temperature_2m) + '°';
+            document.getElementById('currentDesc').textContent = getWeatherDesc(current.weather_code);
+            document.getElementById('feelsLike').textContent = Math.round(current.apparent_temperature) + '°';
+            document.getElementById('humidity').textContent = current.relative_humidity_2m + '%';
+            document.getElementById('windSpeed').textContent = Math.round(current.wind_speed_10m) + ' м/с';
+
+            const daily = data.daily;
+            const daysShort = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+            let html = '';
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(daily.time[i]);
+                const dayName = i === 0 ? 'Сегодня' : daysShort[date.getDay()];
+                const code = daily.weather_code[i];
+                const max = Math.round(daily.temperature_2m_max[i]);
+                const min = Math.round(daily.temperature_2m_min[i]);
+
+                html += '<div class="forecast-item">' +
+                    '<div class="f-day">' + dayName + '</div>' +
+                    '<div class="f-icon">' + getWeatherIcon(code) + '</div>' +
+                    '<div class="f-desc">' + getWeatherDesc(code) + '</div>' +
+                    '<div class="f-temps"><span class="f-min">' + min + '°</span><span class="f-max">' + max + '°</span></div>' +
+                    '</div>';
+            }
+
+            document.getElementById('forecastList').innerHTML = html;
+
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorMessage').textContent = 'Не удалось загрузить погоду: ' + error.message + '. Проверь интернет и нажми Ctrl+F5.';
+        }
+    }
+
+    loadWeather();
+</script>
+</body>
+</html>

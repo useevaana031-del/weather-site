@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#070b14">
 <meta name="color-scheme" content="dark">
-<meta name="robots" content="noindex, nofollow">
 <title>Weather Pro</title>
 <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
 <link rel="preconnect" href="https://nominatim.openstreetmap.org" crossorigin>
@@ -60,7 +59,8 @@
 
     /* ===== SEARCH ===== */
     .search-wrap { position: relative; z-index: 50; }
-    .search-input-wrap { position: relative; }
+    .search-bar { display: flex; gap: 8px; }
+    .search-input-wrap { flex: 1; position: relative; }
     .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--dim); font-size: 15px; pointer-events: none; }
     #searchInput {
         width: 100%;
@@ -86,11 +86,28 @@
     .search-clear.show { display: flex; }
     .search-clear:hover { background: rgba(255,122,122,0.2); color: #ff9a9a; }
 
+    .search-btn {
+        padding: 14px 20px;
+        background: linear-gradient(135deg, rgba(94,184,255,0.18), rgba(124,140,255,0.1));
+        border: 1px solid rgba(94,184,255,0.4);
+        border-radius: 16px;
+        color: var(--accent);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        touch-action: manipulation;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .search-btn:hover { transform: translateY(-1px); background: linear-gradient(135deg, rgba(94,184,255,0.25), rgba(124,140,255,0.15)); }
+    .search-btn:active { transform: scale(0.97); }
+
     .search-results {
         position: absolute; top: calc(100% + 6px); left: 0; right: 0;
         background: rgba(15,22,38,0.98); border: 1px solid var(--border);
         border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-        overflow: hidden; z-index: 100; max-height: 420px; overflow-y: auto;
+        overflow: hidden; z-index: 100; max-height: 440px; overflow-y: auto;
         display: none;
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     }
@@ -161,7 +178,6 @@
     .btn:hover { background: var(--card-hi); color: #fff; border-color: var(--border-hi); transform: translateY(-1px); }
     .btn:active { transform: scale(0.97); }
     .btn.primary { background: linear-gradient(135deg, rgba(94,184,255,0.15), rgba(124,140,255,0.08)); border-color: rgba(94,184,255,0.35); color: var(--accent); }
-    .btn.spb { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
 
     /* ===== CURRENT ===== */
     .current-hero { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; }
@@ -279,6 +295,7 @@
         .day-item .day-rain { display: none; }
         .fish-row { grid-template-columns: 100px 1fr 36px; gap: 8px; font-size: 12px; }
         #searchInput { font-size: 15px; }
+        .search-btn { padding: 14px 16px; font-size: 13px; }
     }
     @media (prefers-reduced-motion: reduce) {
         * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -290,10 +307,13 @@
 <div class="container">
 
     <div class="card search-wrap">
-        <div class="search-input-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Город, река, озеро — например, Ладога" autocomplete="off" spellcheck="false">
-            <button class="search-clear" id="searchClear" onclick="clearSearch()">×</button>
+        <div class="search-bar">
+            <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Ладога, Финский, река Ловать..." autocomplete="off" spellcheck="false">
+                <button class="search-clear" id="searchClear" onclick="clearSearch()">×</button>
+            </div>
+            <button class="search-btn" onclick="doSearchNow()">Найти</button>
         </div>
         <div class="search-results" id="searchResults"></div>
         <div class="search-history" id="searchHistory"></div>
@@ -313,7 +333,7 @@
         </div>
         <div class="toolbar">
             <button class="btn primary" onclick="detectLocation()">📍 Моё местоположение</button>
-            <button class="btn spb" onclick="goToSPB()">🏛 Санкт-Петербург</button>
+            <button class="btn" onclick="goToSPB()">🏛 Санкт-Петербург</button>
             <button class="btn" onclick="saveCurrentLocation()">⭐ Сохранить место</button>
             <button class="btn" id="refreshBtn" onclick="loadWeather(true)">↻ Обновить</button>
         </div>
@@ -406,36 +426,31 @@
 // ============================================================
 (function() {
     'use strict';
-    var allowed = ['useevaana031-del.github.io', 'localhost', '127.0.0.1', ''];
+    var allowed = ['useevaana031-del.github.io', 'localhost', '127.0.0.1'];
     var host = (typeof location !== 'undefined') ? location.hostname : '';
     var proto = (typeof location !== 'undefined') ? location.protocol : '';
     var ok = false;
     for (var i = 0; i < allowed.length; i++) {
         if (host === allowed[i] || host.indexOf(allowed[i]) !== -1) { ok = true; break; }
     }
-    // localhost и file:// всегда разрешены для разработки
     if (host === 'localhost' || host === '127.0.0.1' || proto === 'file:') ok = true;
 
     if (!ok) {
-        // Honeypot: на чужом домене показываем через 6 секунд водяной знак
         try {
             setTimeout(function() {
                 if (document.getElementById('__protect_mark__')) return;
                 var m = document.createElement('div');
                 m.id = '__protect_mark__';
-                m.style.cssText = 'position:fixed;bottom:10px;right:10px;padding:6px 10px;background:rgba(20,27,46,0.95);color:#8b95a8;font-size:10px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:sans-serif;z-index:99999;pointer-events:none;';
-                m.textContent = '© Севрюгин С.И. · useevaana031-del.github.io';
+                m.style.cssText = 'position:fixed;bottom:10px;right:10px;padding:8px 12px;background:rgba(20,27,46,0.95);color:#ff7a7a;font-size:11px;border:1px solid rgba(255,122,122,0.3);border-radius:8px;font-family:sans-serif;z-index:99999;pointer-events:none;font-weight:600;';
+                m.textContent = '⚠️ Ишак, код не твой';
                 document.body.appendChild(m);
-            }, 6000);
+            }, 5000);
         } catch (e) {}
     }
-    // Предупреждение в консоли
     try {
-        console.log('%c⚠️ STOP', 'color:#ff7a7a;font-size:28px;font-weight:bold;text-shadow:0 0 8px rgba(255,122,122,0.6);');
-        console.log('%cЭтот код защищён авторским правом.\nАвтор: Севрюгин Сергей Игоревич (ИВ1к-26).\nКопирование, распространение или выдача за свой код — запрещены.\nОригинал: https://useevaana031-del.github.io/', 'color:#ffcc7a;font-size:13px;line-height:1.5;');
+        console.log('%c⚠️ СТОП, ИШАК', 'color:#ff7a7a;font-size:32px;font-weight:bold;text-shadow:0 0 10px rgba(255,122,122,0.7);');
+        console.log('%cНе получится украсть код, ишак.\nПридумай что-то своё — а не таскай чужое.', 'color:#ffcc7a;font-size:14px;line-height:1.6;font-weight:600;');
     } catch (e) {}
-
-    window.__protect = { ok: ok, host: host };
 })();
 
 // ============================================================
@@ -443,9 +458,9 @@ var SPB_LAT = 59.9386, SPB_LON = 30.3141;
 var SPB_BBOX = { minLat: 59.60, maxLat: 60.35, minLon: 29.30, maxLon: 30.90 };
 
 var lat = SPB_LAT, lon = SPB_LON;
-var CACHE_KEY = 'wpro_cache_v4';
-var LOCS_KEY = 'wpro_locs_v4';
-var HIST_KEY = 'wpro_hist_v3';
+var CACHE_KEY = 'wpro_cache_v5';
+var LOCS_KEY = 'wpro_locs_v5';
+var HIST_KEY = 'wpro_hist_v4';
 var GEO_PREFIX = 'wpro_geo_';
 var REFRESH_MS = 10 * 60 * 1000;
 var TICK_MS = 30 * 1000;
@@ -465,16 +480,17 @@ var locations = [], currentLocIdx = 0;
 var searchAbort = null;
 
 // ============================================================
-// ПРЕСЕТЫ: реки, озёра, заливы + ближайшие посёлки
+// ПРЕСЕТЫ: рыбалка в радиусе 500 км от СПб
 // ============================================================
 var PRESETS = [
-    // ========== ЛАДОЖСКОЕ ОЗЕРО ==========
+    // ========== ЛАДОГА (0-150 км) ==========
     { name: 'Ладожское озеро · Шлиссельбург', lat: 59.945, lon: 31.035, type: 'озеро', group: 'Ладожское озеро' },
     { name: 'Ладожское озеро · Приозерск', lat: 61.040, lon: 30.120, type: 'озеро', group: 'Ладожское озеро' },
     { name: 'Ладожское озеро · Новая Ладога', lat: 60.104, lon: 32.295, type: 'озеро', group: 'Ладожское озеро' },
     { name: 'Ладожское озеро · Сортавала', lat: 61.703, lon: 30.691, type: 'озеро', group: 'Ладожское озеро' },
     { name: 'Ладожское озеро · Питкяранта', lat: 61.575, lon: 31.479, type: 'озеро', group: 'Ладожское озеро' },
     { name: 'Ладожское озеро · Свирьстрой', lat: 60.458, lon: 33.875, type: 'озеро', group: 'Ладожское озеро' },
+    { name: 'Ладожское озеро · Лодейное Поле', lat: 60.730, lon: 33.553, type: 'озеро', group: 'Ладожское озеро' },
     // ========== ФИНСКИЙ ЗАЛИВ ==========
     { name: 'Финский залив · Зеленогорск', lat: 60.193, lon: 29.702, type: 'залив', group: 'Финский залив' },
     { name: 'Финский залив · Сестрорецк', lat: 60.098, lon: 29.958, type: 'залив', group: 'Финский залив' },
@@ -482,47 +498,89 @@ var PRESETS = [
     { name: 'Финский залив · Ломоносов', lat: 59.911, lon: 29.774, type: 'залив', group: 'Финский залив' },
     { name: 'Финский залив · Выборг', lat: 60.710, lon: 28.752, type: 'залив', group: 'Финский залив' },
     { name: 'Финский залив · Усть-Луга', lat: 59.648, lon: 28.279, type: 'залив', group: 'Финский залив' },
-    // ========== РЕКА НЕВА ==========
+    { name: 'Финский залив · Приморск', lat: 60.367, lon: 28.612, type: 'залив', group: 'Финский залив' },
+    // ========== НЕВА И БЛИЖНИЕ РЕКИ ==========
     { name: 'Река Нева · Санкт-Петербург', lat: 59.940, lon: 30.300, type: 'река', group: 'Река Нева' },
     { name: 'Река Нева · Шлиссельбург', lat: 59.945, lon: 31.035, type: 'река', group: 'Река Нева' },
     { name: 'Река Нева · Кировск', lat: 59.870, lon: 30.990, type: 'река', group: 'Река Нева' },
-    // ========== ОНЕЖСКОЕ ==========
-    { name: 'Онежское озеро · Петрозаводск', lat: 61.789, lon: 34.346, type: 'озеро', group: 'Онежское озеро' },
-    { name: 'Онежское озеро · Медвежьегорск', lat: 62.917, lon: 34.462, type: 'озеро', group: 'Онежское озеро' },
-    { name: 'Онежское озеро · Вознесенье', lat: 61.010, lon: 35.482, type: 'озеро', group: 'Онежское озеро' },
-    // ========== РЕКИ ==========
-    { name: 'Река Свирь', lat: 60.955, lon: 34.200, type: 'река' },
-    { name: 'Река Волхов', lat: 59.500, lon: 31.800, type: 'река' },
-    { name: 'Река Вуокса', lat: 60.700, lon: 30.000, type: 'река' },
+    { name: 'Река Вуокса · Приозерск', lat: 61.040, lon: 30.120, type: 'река', group: 'Река Вуокса' },
+    { name: 'Река Вуокса · Лосево', lat: 60.670, lon: 30.000, type: 'река', group: 'Река Вуокса' },
+    { name: 'Река Волхов · Волхов', lat: 59.920, lon: 32.340, type: 'река', group: 'Река Волхов' },
+    { name: 'Река Волхов · Великий Новгород', lat: 58.540, lon: 31.270, type: 'река', group: 'Река Волхов' },
+    { name: 'Река Свирь · Подпорожье', lat: 60.905, lon: 34.170, type: 'река', group: 'Река Свирь' },
+    { name: 'Река Свирь · Лодейное Поле', lat: 60.730, lon: 33.553, type: 'река', group: 'Река Свирь' },
     { name: 'Река Сясь', lat: 60.200, lon: 32.850, type: 'река' },
-    { name: 'Река Паша', lat: 60.150, lon: 33.500, type: 'река' },
+    { name: 'Река Паша · Пашский Перевоз', lat: 60.333, lon: 33.717, type: 'река', group: 'Река Паша' },
+    { name: 'Река Оять', lat: 60.500, lon: 34.050, type: 'река' },
+    { name: 'Река Капша', lat: 60.290, lon: 33.960, type: 'река' },
+    { name: 'Река Тихвинка', lat: 59.640, lon: 33.510, type: 'река' },
+    { name: 'Река Луга · Кингисепп', lat: 59.375, lon: 28.610, type: 'река', group: 'Река Луга' },
+    { name: 'Река Луга · Луга', lat: 58.737, lon: 29.845, type: 'река', group: 'Река Луга' },
+    { name: 'Река Плюсса', lat: 58.750, lon: 28.850, type: 'река' },
+    { name: 'Река Нарва · Ивангород', lat: 59.375, lon: 28.210, type: 'река', group: 'Река Нарва' },
+    { name: 'Река Тосна', lat: 59.550, lon: 30.850, type: 'река' },
+    { name: 'Река Ижора', lat: 59.750, lon: 30.600, type: 'река' },
+    { name: 'Река Сестра · Сестрорецк', lat: 60.100, lon: 29.960, type: 'река', group: 'Река Сестра' },
+    { name: 'Река Славянка · Павловск', lat: 59.690, lon: 30.450, type: 'река', group: 'Река Славянка' },
+    { name: 'Река Мга', lat: 59.750, lon: 31.100, type: 'река' },
+    // ========== ОЗЁРА КАРЕЛИИ ==========
+    { name: 'Онежское озеро · Петрозаводск', lat: 61.789, lon: 34.346, type: 'озеро', group: 'Онежское озеро' },
+    { name: 'Онежское озеро · Кондопога', lat: 62.200, lon: 34.267, type: 'озеро', group: 'Онежское озеро' },
+    { name: 'Онежское озеро · Медвежьегорск', lat: 62.917, lon: 34.462, type: 'озеро', group: 'Онежское озеро' },
+    { name: 'Онежское озеро · Пудож', lat: 61.810, lon: 36.530, type: 'озеро', group: 'Онежское озеро' },
+    { name: 'Онежское озеро · Вознесенье', lat: 61.010, lon: 35.482, type: 'озеро', group: 'Онежское озеро' },
+    { name: 'Сямозеро', lat: 61.920, lon: 33.200, type: 'озеро' },
+    { name: 'Сегозеро · Паданы', lat: 62.900, lon: 33.700, type: 'озеро', group: 'Сегозеро' },
+    { name: 'Выгозеро · Сегежа', lat: 63.740, lon: 34.320, type: 'озеро', group: 'Выгозеро' },
+    { name: 'Тикшозеро', lat: 61.200, lon: 31.700, type: 'озеро' },
+    { name: 'Водлозеро · Куганаволок', lat: 62.350, lon: 36.880, type: 'озеро', group: 'Водлозеро' },
+    { name: 'Пяозеро', lat: 66.100, lon: 30.800, type: 'озеро' },
+    { name: 'Куйто · Калевала', lat: 65.200, lon: 31.180, type: 'озеро', group: 'Куйто' },
+    // ========== НОВГОРОДСКАЯ ==========
+    { name: 'Озеро Ильмень · Новгород', lat: 58.280, lon: 31.250, type: 'озеро', group: 'Озеро Ильмень' },
+    { name: 'Река Мста · Боровичи', lat: 58.390, lon: 33.910, type: 'река', group: 'Река Мста' },
     { name: 'Река Ловать · Великие Луки', lat: 56.340, lon: 30.540, type: 'река', group: 'Река Ловать' },
     { name: 'Река Ловать · Холм', lat: 57.150, lon: 31.180, type: 'река', group: 'Река Ловать' },
-    { name: 'Река Мста · Боровичи', lat: 58.390, lon: 33.910, type: 'река', group: 'Река Мста' },
+    { name: 'Река Шелонь · Сольцы', lat: 58.120, lon: 30.310, type: 'река', group: 'Река Шелонь' },
+    { name: 'Река Полисть · Старая Русса', lat: 57.995, lon: 31.360, type: 'река', group: 'Река Полисть' },
+    { name: 'Озеро Валдайское · Валдай', lat: 57.980, lon: 33.250, type: 'озеро', group: 'Озеро Валдайское' },
+    // ========== ПСКОВСКАЯ ==========
+    { name: 'Псковское озеро · Псков', lat: 58.000, lon: 27.800, type: 'озеро', group: 'Псковское озеро' },
+    { name: 'Чудское озеро · Гдов', lat: 58.740, lon: 27.820, type: 'озеро', group: 'Чудское озеро' },
     { name: 'Река Великая · Псков', lat: 57.820, lon: 28.330, type: 'река', group: 'Река Великая' },
-    { name: 'Река Луга · Кингисепп', lat: 59.375, lon: 28.610, type: 'река', group: 'Река Луга' },
-    { name: 'Река Ижора', lat: 59.750, lon: 30.600, type: 'река' },
-    { name: 'Река Тосна', lat: 59.550, lon: 30.850, type: 'река' },
-    { name: 'Река Мга', lat: 59.750, lon: 31.100, type: 'река' },
-    { name: 'Река Славянка · Павловск', lat: 59.690, lon: 30.450, type: 'река', group: 'Река Славянка' },
-    { name: 'Река Сестра · Сестрорецк', lat: 60.100, lon: 29.960, type: 'река', group: 'Река Сестра' },
-    { name: 'Река Охта', lat: 59.950, lon: 30.450, type: 'река' },
-    // ========== ОЗЁРА ==========
-    { name: 'Сегозеро', lat: 62.600, lon: 34.100, type: 'озеро' },
-    { name: 'Тикшозеро', lat: 61.200, lon: 31.700, type: 'озеро' },
-    { name: 'Озеро Ильмень · Новгород', lat: 58.280, lon: 31.250, type: 'озеро', group: 'Озеро Ильмень' },
-    { name: 'Псковское озеро', lat: 58.000, lon: 27.800, type: 'озеро' },
-    { name: 'Чудское озеро', lat: 58.700, lon: 27.500, type: 'озеро' },
-    { name: 'Озеро Вуокса', lat: 60.950, lon: 29.700, type: 'озеро' },
-    { name: 'Озеро Суходольское', lat: 60.650, lon: 30.300, type: 'озеро' },
+    { name: 'Река Великая · Остров', lat: 57.340, lon: 28.350, type: 'река', group: 'Река Великая' },
+    { name: 'Река Сороть · Михайловское', lat: 57.030, lon: 28.900, type: 'река', group: 'Река Сороть' },
+    // ========== ТВЕРСКАЯ / ВОЛОГОДСКАЯ ==========
+    { name: 'Озеро Селигер · Осташков', lat: 57.150, lon: 33.100, type: 'озеро', group: 'Озеро Селигер' },
+    { name: 'Озеро Селигер · Нило-Столобенская', lat: 57.240, lon: 33.090, type: 'озеро', group: 'Озеро Селигер' },
+    { name: 'Озеро Кубенское · Вологда', lat: 59.500, lon: 39.700, type: 'озеро', group: 'Озеро Кубенское' },
+    { name: 'Белое озеро · Белозерск', lat: 60.170, lon: 37.650, type: 'озеро', group: 'Белое озеро' },
+    // ========== ФИНЛЯНДИЯ РЯДОМ ==========
+    { name: 'Сайма · Лаппеэнранта', lat: 61.060, lon: 28.190, type: 'озеро', group: 'Сайма' },
+    { name: 'Сайма · Иматра', lat: 61.170, lon: 28.770, type: 'озеро', group: 'Сайма' },
+    { name: 'Сайма · Миккели', lat: 61.680, lon: 27.270, type: 'озеро', group: 'Сайма' },
+    { name: 'Сайма · Савонлинна', lat: 61.870, lon: 28.880, type: 'озеро', group: 'Сайма' },
+    // ========== ЗАЛИВЫ И МОРЯ ==========
+    { name: 'Выборгский залив', lat: 60.680, lon: 28.750, type: 'залив' },
+    { name: 'Нарвский залив', lat: 59.500, lon: 28.000, type: 'залив' },
+    { name: 'Лужская губа', lat: 59.670, lon: 28.270, type: 'залив' },
+    // ========== МАЛЫЕ ОЗЁРА ==========
     { name: 'Сестрорецкий Разлив', lat: 60.100, lon: 29.980, type: 'озеро' },
-    // ========== ГОРОДА ==========
+    { name: 'Озеро Суходольское', lat: 60.650, lon: 30.300, type: 'озеро' },
+    { name: 'Озеро Зеркальное', lat: 60.600, lon: 30.200, type: 'озеро' },
+    { name: 'Озеро Пионерское', lat: 60.250, lon: 30.150, type: 'озеро' },
+    // ========== ГОРОДА ДЛЯ ПОИСКА ==========
     { name: 'Выборг', lat: 60.710, lon: 28.752, type: 'город' },
     { name: 'Приозерск', lat: 61.040, lon: 30.120, type: 'город' },
     { name: 'Гатчина', lat: 59.565, lon: 30.128, type: 'город' },
     { name: 'Кронштадт', lat: 59.988, lon: 29.778, type: 'город' },
     { name: 'Петрозаводск', lat: 61.789, lon: 34.346, type: 'город' },
-    { name: 'Великий Новгород', lat: 58.521, lon: 31.271, type: 'город' }
+    { name: 'Великий Новгород', lat: 58.521, lon: 31.271, type: 'город' },
+    { name: 'Псков', lat: 57.820, lon: 28.330, type: 'город' },
+    { name: 'Вологда', lat: 59.220, lon: 39.890, type: 'город' },
+    { name: 'Тихвин', lat: 59.640, lon: 33.510, type: 'город' },
+    { name: 'Лодейное Поле', lat: 60.730, lon: 33.553, type: 'город' },
+    { name: 'Сортавала', lat: 61.703, lon: 30.691, type: 'город' }
 ];
 
 // ============================================================
@@ -676,7 +734,6 @@ function loadCache() {
 }
 function loadLocations() {
     try { var r = localStorage.getItem(LOCS_KEY); if (r) locations = JSON.parse(r) || []; } catch (e) { locations = []; }
-    // СПб всегда первый
     var hasSPB = false;
     for (var i = 0; i < locations.length; i++) {
         if (Math.abs(locations[i].lat - SPB_LAT) < 0.001 && Math.abs(locations[i].lon - SPB_LON) < 0.001) { hasSPB = true; break; }
@@ -710,13 +767,15 @@ function selectLocation(i) {
     cityNameEl.textContent = l.name;
     updateCoords();
     renderSavedRow();
+    // Очищаем поиск — переключились на сохранённое место
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClear').classList.remove('show');
     addToHistory({ name: l.name, lat: l.lat, lon: l.lon });
     loadWeather(true);
 }
 function removeLocation(i) {
     var l = locations[i];
     if (!l) return;
-    // СПб нельзя удалить
     if (Math.abs(l.lat - SPB_LAT) < 0.001 && Math.abs(l.lon - SPB_LON) < 0.001) return;
     if (locations.length <= 1) return;
     locations.splice(i, 1);
@@ -761,9 +820,7 @@ function renderHistory() {
     for (var i = 0; i < h.length; i++) {
         if (Math.abs(h[i].lat - SPB_LAT) < 0.001 && Math.abs(h[i].lon - SPB_LON) < 0.001) hasSPB = true;
     }
-    if (!hasSPB) {
-        html += '<div class="history-chip spb" onclick="goToSPB()">🏛 Санкт-Петербург</div>';
-    }
+    if (!hasSPB) html += '<div class="history-chip spb" onclick="goToSPB()">🏛 Санкт-Петербург</div>';
     for (var j = 0; j < h.length; j++) {
         var isSPB = Math.abs(h[j].lat - SPB_LAT) < 0.001 && Math.abs(h[j].lon - SPB_LON) < 0.001;
         html += '<div class="history-chip' + (isSPB ? ' spb' : '') + '" onclick="pickHistory(' + j + ')">' + esc(h[j].name) + '</div>';
@@ -779,13 +836,15 @@ function goToSPB() {
     lat = SPB_LAT; lon = SPB_LON;
     cityNameEl.textContent = 'Санкт-Петербург';
     updateCoords();
-    // Найдём СПб в избранном
     for (var i = 0; i < locations.length; i++) {
         if (Math.abs(locations[i].lat - SPB_LAT) < 0.001 && Math.abs(locations[i].lon - SPB_LON) < 0.001) {
             currentLocIdx = i; break;
         }
     }
     renderSavedRow();
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClear').classList.remove('show');
+    document.getElementById('searchResults').classList.remove('show');
     addToHistory({ name: 'Санкт-Петербург', lat: SPB_LAT, lon: SPB_LON });
     loadWeather(true);
 }
@@ -813,7 +872,7 @@ function searchPresets(q) {
         }
         if (match) res.push(p);
     }
-    return res.slice(0, 10);
+    return res.slice(0, 12);
 }
 
 function typeEmoji(type) {
@@ -835,26 +894,29 @@ function onSearchInput() {
         return;
     }
     if (v.length < 2) return;
-
     var local = searchPresets(v);
-    if (local.length) {
-        renderResults(local, true);
-    }
-    searchTimer = setTimeout(function() {
-        runNominatimSearch(v, local);
-    }, 350);
+    if (local.length) renderResults(local, true);
+    searchTimer = setTimeout(function() { runNominatimSearch(v, local); }, 350);
+}
+
+function doSearchNow() {
+    var v = document.getElementById('searchInput').value.trim();
+    if (!v) return;
+    document.getElementById('searchClear').classList.add('show');
+    var local = searchPresets(v);
+    if (local.length) renderResults(local, true);
+    runNominatimSearch(v, local);
 }
 
 function renderResults(items, isLocal) {
     var el = document.getElementById('searchResults');
     if (!items.length) {
         if (!isLocal) {
-            el.innerHTML = '<div class="search-empty">Ничего не найдено.</div>';
+            el.innerHTML = '<div class="search-empty">Ничего не найдено по запросу.<br>Попробуй «Ладога», «Финский залив», «река Ловать» или «Петрозаводск».</div>';
             el.classList.add('show');
         }
         return;
     }
-    // Группируем по group (Ладожское озеро / Финский залив и т.д.)
     var groups = {};
     var order = [];
     for (var i = 0; i < items.length; i++) {
@@ -864,7 +926,6 @@ function renderResults(items, isLocal) {
         if (!groups[g]) { groups[g] = []; order.push(g); }
         groups[g].push(it);
     }
-
     var html = '';
     for (var gi = 0; gi < order.length; gi++) {
         var g = order[gi];
@@ -895,9 +956,8 @@ function pickResult(i) {
     var it = items[i];
     if (!it) return;
     applyLocation(it.lat, it.lon, it.name, false);
+    // ВАЖНО: текст в поле остаётся, чтобы пользователь видел, что он искал
     document.getElementById('searchResults').classList.remove('show');
-    document.getElementById('searchInput').value = '';
-    document.getElementById('searchClear').classList.remove('show');
 }
 
 async function runNominatimSearch(q, localItems) {
@@ -906,7 +966,7 @@ async function runNominatimSearch(q, localItems) {
     searchAbort = ctrl;
     try {
         var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&q=' + encodeURIComponent(q)
-            + '&limit=6&accept-language=ru&addressdetails=1';
+            + '&limit=8&accept-language=ru&addressdetails=1';
         var r = await fetch(url, { signal: ctrl.signal });
         var data = await r.json();
         var remote = [];
@@ -916,7 +976,6 @@ async function runNominatimSearch(q, localItems) {
             if (!validCoord(la, lo)) continue;
             var name = it.name || (it.display_name || '').split(',')[0];
             var addr = it.address || {};
-            // Область/регион
             var region = addr.state || addr.region || addr.county || '';
             var district = addr.city_district || addr.district || '';
             var detailParts = [];
@@ -933,31 +992,24 @@ async function runNominatimSearch(q, localItems) {
             if (cls === 'waterway') typeLabel = 'река';
             else if (cls === 'natural' && (type === 'water' || type === 'bay')) typeLabel = type === 'bay' ? 'залив' : 'озеро';
             else if (cls === 'place') {
-                if (type === 'city') typeLabel = 'город';
-                else if (type === 'town') typeLabel = 'город';
+                if (type === 'city' || type === 'town') typeLabel = 'город';
                 else if (type === 'village' || type === 'hamlet') typeLabel = 'посёлок';
                 else if (type === 'state') typeLabel = 'регион';
                 else typeLabel = 'населённый пункт';
             }
             else if (cls === 'boundary') typeLabel = 'регион';
             else typeLabel = 'место';
-            remote.push({
-                name: name, lat: la, lon: lo,
-                type: typeLabel,
-                _emoji: typeEmoji(typeLabel),
-                detail: detail
-            });
+            remote.push({ name: name, lat: la, lon: lo, type: typeLabel, _emoji: typeEmoji(typeLabel), detail: detail });
         }
-        // Слияние без дубликатов
         var merged = [];
         var seen = {};
         function key(x) { return normalizeStr(x.name) + '|' + x.lat.toFixed(3) + '|' + x.lon.toFixed(3); }
         for (var l = 0; l < localItems.length; l++) { var k = key(localItems[l]); if (!seen[k]) { seen[k] = 1; merged.push(localItems[l]); } }
         for (var m = 0; m < remote.length; m++) { var k2 = key(remote[m]); if (!seen[k2]) { seen[k2] = 1; merged.push(remote[m]); } }
-        renderResults(merged.slice(0, 14), false);
+        renderResults(merged.slice(0, 16), false);
     } catch (e) {
         if (e.name !== 'AbortError' && !localItems.length) {
-            document.getElementById('searchResults').innerHTML = '<div class="search-empty">Ошибка поиска.</div>';
+            document.getElementById('searchResults').innerHTML = '<div class="search-empty">Ошибка поиска. Попробуй ещё раз.</div>';
             document.getElementById('searchResults').classList.add('show');
         }
     }
@@ -967,12 +1019,10 @@ function applyLocation(la, lo, name, keepSavedList) {
     if (!validCoord(la, lo)) return;
     lat = la; lon = lo;
     var finalName = name || 'Выбранное место';
-    // Если внутри bbox СПб — принудительно «Санкт-Петербург»
     if (inSpbBox(la, lo)) finalName = 'Санкт-Петербург';
     cityNameEl.textContent = finalName;
     updateCoords();
     addToHistory({ name: finalName, lat: la, lon: lo });
-    // НЕ добавляем в избранное автоматически — только в историю
     loadWeather(true);
 }
 
@@ -982,6 +1032,9 @@ function clearSearch() {
     document.getElementById('searchResults').classList.remove('show');
 }
 document.getElementById('searchInput').addEventListener('input', onSearchInput);
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doSearchNow();
+});
 document.addEventListener('click', function(e) {
     var wrap = document.querySelector('.search-wrap');
     if (wrap && !wrap.contains(e.target)) {
@@ -1023,6 +1076,10 @@ function detectLocation() {
             lat = la; lon = lo;
             updateCoords();
             geoBox.innerHTML = '';
+            // Очищаем поиск — переключились на геолокацию
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchClear').classList.remove('show');
+            document.getElementById('searchResults').classList.remove('show');
             loadWeather(true);
             if (inSpbBox(lat, lon)) {
                 cityNameEl.textContent = 'Санкт-Петербург';
@@ -1085,25 +1142,18 @@ async function fetchEnsemble() {
         settled(fetchOneModel('icon_seamless')),
         settled(fetchOneModel('gfs_seamless'))
     ]);
-    var ok = [], names = [], weights = [], temps = [];
+    var ok = [], names = [], weights = [];
     var allNames = ['ECMWF', 'ICON', 'GFS'];
     var allWeights = [0.45, 0.35, 0.20];
     for (var i = 0; i < results.length; i++) {
-        if (results[i].ok) {
-            ok.push(results[i].v);
-            names.push(allNames[i]);
-            weights.push(allWeights[i]);
-            temps.push(results[i].v.current.temperature_2m);
-        }
+        if (results[i].ok) { ok.push(results[i].v); names.push(allNames[i]); weights.push(allWeights[i]); }
     }
     if (!ok.length) throw new Error('Все модели упали');
-    if (ok.length === 1) return { data: ok[0], models: names, source: 'Open-Meteo ' + names[0], temps: temps };
-
+    if (ok.length === 1) return { data: ok[0], models: names, source: 'Open-Meteo ' + names[0] };
     var sumW = 0;
     for (var k = 0; k < weights.length; k++) sumW += weights[k];
     var norm = weights.map(function(w) { return w / sumW; });
-
-    return { data: blendModels(ok, norm), models: names, source: 'Ансамбль', temps: temps };
+    return { data: blendModels(ok, norm), models: names, source: 'Ансамбль' };
 }
 
 function blendModels(models, weights) {
@@ -1116,7 +1166,6 @@ function blendModels(models, weights) {
         for (var k = 0; k < codes.length; k++) if (severity(codes[k]) > severity(w)) w = codes[k];
         return w;
     }
-
     var current = {
         time: base.current.time,
         temperature_2m: wavg(function(m){ return m.current.temperature_2m; }),
@@ -1126,15 +1175,12 @@ function blendModels(models, weights) {
         wind_gusts_10m: wavg(function(m){ return m.current.wind_gusts_10m; }),
         wind_direction_10m: base.current.wind_direction_10m,
         pressure_msl: wavg(function(m){ return m.current.pressure_msl; }),
-        surface_pressure: wavg(function(m){ return m.current.surface_pressure; }),
         uv_index: wavg(function(m){ return m.current.uv_index; }),
         cloud_cover: wavg(function(m){ return m.current.cloud_cover; }),
         visibility: wavg(function(m){ return m.current.visibility; }),
         dew_point_2m: wavg(function(m){ return m.current.dew_point_2m; }),
-        precipitation: wavg(function(m){ return m.current.precipitation; }),
         weather_code: worst(function(m){ return m.current.weather_code; })
     };
-
     var hLen = base.hourly.time.length;
     var hourly = { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [], precipitation: [], wind_speed_10m: [], wind_gusts_10m: [], pressure_msl: [], relative_humidity_2m: [], apparent_temperature: [], cloud_cover: [], uv_index: [], visibility: [], dew_point_2m: [] };
     var keysH = ['temperature_2m','precipitation_probability','precipitation','wind_speed_10m','wind_gusts_10m','pressure_msl','relative_humidity_2m','apparent_temperature','cloud_cover','uv_index','visibility','dew_point_2m'];
@@ -1146,22 +1192,17 @@ function blendModels(models, weights) {
         }
         hourly.weather_code.push(worst(function(m){ return m.hourly && m.hourly.weather_code ? m.hourly.weather_code[hi] : 0; }));
     }
-
     var dLen = base.daily.time.length;
-    var daily = { time: [], weather_code: [], temperature_2m_max: [], temperature_2m_min: [], precipitation_probability_max: [], precipitation_sum: [], sunrise: [], sunset: [], uv_index_max: [], wind_speed_10m_max: [], wind_gusts_10m_max: [], wind_direction_10m_dominant: [] };
-    var keysD = ['temperature_2m_max','temperature_2m_min','precipitation_probability_max','precipitation_sum','uv_index_max','wind_speed_10m_max','wind_gusts_10m_max'];
+    var daily = { time: [], weather_code: [], temperature_2m_max: [], temperature_2m_min: [], precipitation_probability_max: [], sunrise: [], sunset: [] };
     for (var di = 0; di < dLen; di++) {
         daily.time.push(base.daily.time[di]);
-        for (var kd = 0; kd < keysD.length; kd++) {
-            var keyD = keysD[kd];
-            daily[keyD].push(wavg((function(k){ return function(m){ return m.daily && m.daily[k] ? m.daily[k][di] : null; }; })(keyD)));
-        }
         daily.weather_code.push(worst(function(m){ return m.daily && m.daily.weather_code ? m.daily.weather_code[di] : 0; }));
+        daily.temperature_2m_max.push(wavg(function(m){ return m.daily.temperature_2m_max ? m.daily.temperature_2m_max[di] : null; }));
+        daily.temperature_2m_min.push(wavg(function(m){ return m.daily.temperature_2m_min ? m.daily.temperature_2m_min[di] : null; }));
+        daily.precipitation_probability_max.push(wavg(function(m){ return m.daily.precipitation_probability_max ? m.daily.precipitation_probability_max[di] : 0; }));
         daily.sunrise.push(base.daily.sunrise[di]);
         daily.sunset.push(base.daily.sunset[di]);
-        daily.wind_direction_10m_dominant.push(base.daily.wind_direction_10m_dominant ? base.daily.wind_direction_10m_dominant[di] : 0);
     }
-
     return { current: current, hourly: hourly, daily: daily };
 }
 
@@ -1245,7 +1286,6 @@ function renderAll(data, isCached) {
         })(performance.now());
     }
     lastTemp = isNum(t) ? t : null;
-
     document.getElementById('currentDesc').textContent = descFor(fixCode(c.weather_code, t));
     document.getElementById('feelsLine').textContent = 'Ощущается как ' + fmt(c.apparent_temperature, '°');
     document.getElementById('wind').textContent = fmt(c.wind_speed_10m, ' м/с');
@@ -1260,7 +1300,6 @@ function renderAll(data, isCached) {
     document.getElementById('visibility').textContent = isNum(c.visibility) ? (c.visibility >= 1000 ? (c.visibility/1000).toFixed(1) + ' км' : Math.round(c.visibility) + ' м') : '--';
     document.getElementById('clouds').textContent = fmt(c.cloud_cover, '%');
     document.getElementById('cloudsHint').textContent = cloudsHint(c.cloud_cover);
-
     if (data.daily && data.daily.sunrise && data.daily.sunrise[0]) {
         var sr = (data.daily.sunrise[0] || '').slice(11, 16);
         var ss = (data.daily.sunset[0] || '').slice(11, 16);
@@ -1273,7 +1312,6 @@ function renderAll(data, isCached) {
             document.getElementById('dayLength').textContent = Math.floor(dl) + ' ч ' + Math.round((dl - Math.floor(dl)) * 60) + ' мин';
         }
     }
-
     renderHourly(data);
     renderDaily(data);
     renderFishing(c);
@@ -1456,7 +1494,6 @@ function renderFishing(c) {
     var avg = 0;
     for (var i = 0; i < Math.min(5, scored.length); i++) avg += scored[i].score;
     avg = Math.round(avg / Math.min(5, scored.length));
-
     var html = '<div class="fishing-wrap">';
     html += '<div class="fish-summary">'
         + '<div>'
@@ -1495,13 +1532,10 @@ async function loadWeather(force) {
     errorBox.style.display = 'none';
     statusBox.innerHTML = '';
     refreshBtn.classList.add('spinning');
-
     var result = null;
     try { result = await fetchEnsemble(); }
     catch (e) { console.error('Ensemble:', e.message); }
-
     if (tok !== reqToken) { refreshBtn.classList.remove('spinning'); return; }
-
     if (!result) {
         refreshBtn.classList.remove('spinning');
         var cached = loadCache();
@@ -1519,7 +1553,6 @@ async function loadWeather(force) {
         }
         return;
     }
-
     refreshBtn.classList.remove('spinning');
     lastData = result.data;
     lastUpdateMs = Date.now();
@@ -1559,13 +1592,11 @@ window.addEventListener('offline', function() { statusBox.innerHTML = '<div clas
 updateDate();
 updateClock();
 updateCoords();
-
 loadLocations();
 var curLoc = locations[currentLocIdx] || locations[0];
 lat = curLoc.lat; lon = curLoc.lon;
 cityNameEl.textContent = curLoc.name;
 updateCoords();
-
 renderHistory();
 checkGeoPerm(function(s) { renderGeoBox(s); });
 loadWeather(true);

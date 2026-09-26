@@ -18,7 +18,7 @@
 --card:rgba(255,255,255,.05);--card-hi:rgba(255,255,255,.08);
 --border:rgba(255,255,255,.08);--border-hi:rgba(94,184,255,.35);
 --text:#f0f4fa;--text-2:#d5dde8;--dim:#8b95a8;--mute:#5e6b85;
---accent:#5eb8ff;--warn:#ffcc7a;--err:#ff7a7a;
+--accent:#5eb8ff;--warn:#ffcc7a;--err:#ff7a7a;--ok:#4ad9a0;
 --hero-grad-1:#fff;--hero-grad-2:#b8c5d6;--clock:#e5eaf3;--btn-text:#c5cdd9;
 --input-bg:rgba(0,0,0,.25);--results-bg:rgba(15,22,38,.98);
 --moon-bg:#2a3a52;--moon-shadow:#3a4a62;--moon-lit:#e8eaf0
@@ -29,7 +29,7 @@
 --card:rgba(255,255,255,.85);--card-hi:rgba(255,255,255,1);
 --border:rgba(0,0,0,.08);--border-hi:rgba(26,115,232,.4);
 --text:#0a1020;--text-2:#1f2a3d;--dim:#4a5568;--mute:#718096;
---accent:#1a73e8;--warn:#d97706;--err:#dc2626;
+--accent:#1a73e8;--warn:#d97706;--err:#dc2626;--ok:#059669;
 --hero-grad-1:#0a1020;--hero-grad-2:#4a5568;--clock:#1a2436;--btn-text:#2a3448;
 --input-bg:rgba(0,0,0,.04);--results-bg:rgba(255,255,255,.98);
 --moon-bg:#d0d8e2;--moon-shadow:#b8c2d0;--moon-lit:#ffffff
@@ -91,7 +91,7 @@ body{min-height:100vh;background:radial-gradient(ellipse at top,var(--bg-top) 0%
 .metric-label{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
 .metric-value{font-size:18px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums}
 .metric-hint{font-size:11px;color:var(--dim);margin-top:3px}
-.metric-hint.pressure-good{color:#4ad9a0}
+.metric-hint.pressure-good{color:var(--ok)}
 .metric-hint.pressure-bad{color:var(--warn)}
 .section-title{font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px}
 .hourly-scroll{display:flex;gap:4px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
@@ -139,9 +139,8 @@ body{min-height:100vh;background:radial-gradient(ellipse at top,var(--bg-top) 0%
 .notice{padding:14px 18px;border-radius:14px;font-size:13px;line-height:1.6}
 .notice.warn{background:rgba(255,184,74,.1);border:1px solid rgba(255,184,74,.3);color:var(--warn)}
 .notice.err{background:rgba(255,100,100,.1);border:1px solid rgba(255,100,100,.3);color:var(--err)}
+.notice.ok{background:rgba(74,217,160,.1);border:1px solid rgba(74,217,160,.3);color:var(--ok)}
 .notice b{display:block;margin-bottom:6px;font-size:14px}
-.notice ol{margin:8px 0 0 18px;padding:0}
-.notice ol li{margin:4px 0}
 .notice code{font-size:11.5px;background:rgba(0,0,0,.25);padding:2px 6px;border-radius:4px;word-break:break-all;display:inline-block;margin-top:2px}
 .notice button{margin-top:10px;background:var(--card-hi);border:1px solid var(--border);color:inherit;padding:9px 14px;border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer;margin-right:8px}
 .notice button:hover{border-color:var(--border-hi)}
@@ -231,7 +230,7 @@ body{padding:14px 10px 60px}
 </div>
 
 <div class="card">
-<div class="section-title">Почасовой прогноз · 48 часов</div>
+<div class="section-title">Почасовой прогноз</div>
 <div id="hourly" class="hourly-scroll"><div class="loading">Загрузка...</div></div>
 </div>
 
@@ -267,14 +266,50 @@ if(h==='localhost'||h==='127.0.0.1'||p==='file:')ok=true;
 if(!ok){try{setTimeout(function(){if(document.getElementById('__pm__'))return;var m=document.createElement('div');m.id='__pm__';m.style.cssText='position:fixed;bottom:10px;right:10px;padding:8px 12px;background:rgba(20,27,46,.95);color:#ff7a7a;font-size:11px;border:1px solid rgba(255,122,122,.3);border-radius:8px;font-family:sans-serif;z-index:99999;pointer-events:none;font-weight:600';m.textContent='⚠️ Ишак, код не твой';document.body.appendChild(m)},5000)}catch(e){}}
 })();
 
+/* ============================================================
+   ВАЖНО: ПРОКСИ
+   ============================================================
+   Если api.open-meteo.com не открывается напрямую (в РФ бывает),
+   сделай свой прокси на Cloudflare Workers (бесплатно, 5 минут):
+
+   1. Зайди на https://dash.cloudflare.com → Workers & Pages → Create Worker
+   2. Назови "weather-proxy", нажми Deploy
+   3. Edit code → удали всё → вставь:
+
+      export default {
+        async fetch(request) {
+          const url = new URL(request.url);
+          const target = url.searchParams.get('url');
+          if (!target) return new Response('no url', {status: 400});
+          const r = await fetch(target);
+          const body = await r.text();
+          return new Response(body, {
+            status: r.status,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+      };
+
+   4. Save and Deploy. Получишь адрес типа
+      https://weather-proxy.ТВОЙ_НИК.workers.dev
+
+   5. Вставь его сюда (с ?url= на конце):
+   ============================================================ */
+
+var PROXY_URL = '';  // Пример: 'https://weather-proxy.user.workers.dev/?url='
+var USE_PROXY = false;  // Поставь true, когда впишешь PROXY_URL
+
 /* ============ КОНСТАНТЫ ============ */
 var SPB_LAT=59.9386,SPB_LON=30.3141;
 var SPB_BBOX={minLat:59.60,maxLat:60.35,minLon:29.30,maxLon:30.90};
 var lat=SPB_LAT,lon=SPB_LON;
-var CACHE_KEY='wp_v19',LOCS_KEY='wl_v19',HIST_KEY='wh_v19',GEO_PREFIX='wg_';
-var FETCH_INTERVAL=120000;
-var UI_TICK=30000;
-var FETCH_TIMEOUT=9000;
+var CACHE_KEY='wp_v20',LOCS_KEY='wl_v20',HIST_KEY='wh_v20',GEO_PREFIX='wg_';
+var FETCH_INTERVAL=120000;   // интервал автообновления
+var UI_TICK=30000;           // тик часов
+var FETCH_TIMEOUT=30000;     // 30 секунд — достаточно для медленного интернета
 
 var cityNameEl=document.getElementById('cityName'),coordsEl=document.getElementById('coords');
 var statusBox=document.getElementById('statusBox'),errorBox=document.getElementById('errorBox');
@@ -285,6 +320,7 @@ var lastData=null,lastUpdateMs=0,lastHourRendered='',lastTemp=null,reqToken=0;
 var locations=[],currentLocIdx=0,searchAbort=null,searchTimer=null;
 var activeMode='spb';
 var isLoading=false;
+var lastFetchMs=0;
 
 /* ============ БАЗА МЕСТ ============ */
 var PRESETS=[
@@ -401,7 +437,7 @@ function fixCode(code,t){if(!isNum(t))return code;if(t>3&&((code>=71&&code<=77)|
 /* ============ CLOCK ============ */
 function updateClock(){var d=new Date();document.getElementById('clock').textContent=pad2(d.getHours())+':'+pad2(d.getMinutes())}
 function updateDate(){var n=new Date();var days=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];var months=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];document.getElementById('currentDate').textContent=days[n.getDay()]+', '+n.getDate()+' '+months[n.getMonth()]}
-function updateLastUpdated(){var el=document.getElementById('lastUpdated');if(!lastUpdateMs){el.textContent='';return}var s=Math.round((Date.now()-lastUpdateMs)/1000);var t;if(s<30)t='только что';else if(s<60)t=s+' сек назад';else if(s<3600)t=Math.round(s/60)+' мин назад';else t=Math.round(s/3600)+' ч назад';el.textContent='Обновлено '+t}
+function updateLastUpdated(){var el=document.getElementById('lastUpdated');if(!lastUpdateMs){el.textContent='';return}var s=Math.round((Date.now()-lastUpdateMs)/1000);var t;if(s<30)t='только что';else if(s<60)t=s+' сек назад';else if(s<3600)t=Math.round(s/60)+' мин назад';else t=Math.round(s/3600)+' ч назад';el.textContent='Обновлено '+t+(lastFetchMs?' · '+Math.round(lastFetchMs/1000)+'с':'')}
 function updateCoords(){if(Math.abs(lat-SPB_LAT)<0.01&&Math.abs(lon-SPB_LON)<0.01)coordsEl.textContent='';else coordsEl.textContent=lat.toFixed(4)+', '+lon.toFixed(4)}
 function nowHourKey(){var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())}
 
@@ -444,11 +480,11 @@ function renderResults(items,isLocal){var el=document.getElementById('searchResu
 return}
 var groups={},order=[];for(var i=0;i<items.length;i++){var it=items[i];if(!validCoord(it.lat,it.lon))continue;var g=it.group||it.type||'Результаты';if(!groups[g]){groups[g]=[];order.push(g)}
 groups[g].push(it)}
-var html='';for(var gi=0;gi<order.length;gi++){var g=order[gi];var arr=groups[g];if(order.length>1&&arr.length>1){html+='<div class="result-group-label">'+esc(g)+'</div>'}
-for(var k=0;k<arr.length;k++){var it2=arr[k];var idx=items.indexOf(it2);html+='<div class="result-item" data-idx="'+idx+'"><div class="result-icon">'+(it2._emoji||typeEmoji(it2.type))+'</div><div class="result-body"><div class="result-name">'+esc(it2.name)+'</div>'+(it2.detail?'<div class="result-detail">'+esc(it2.detail)+'</div>':'')+'</div><div class="result-type">'+esc(it2.type||'место')+'</div></div>'}}
+var html='';var flat=[];for(var gi=0;gi<order.length;gi++){var g=order[gi];var arr=groups[g];if(order.length>1&&arr.length>1){html+='<div class="result-group-label">'+esc(g)+'</div>'}
+for(var k=0;k<arr.length;k++){var it2=arr[k];var idx=flat.length;flat.push(it2);html+='<div class="result-item" data-idx="'+idx+'"><div class="result-icon">'+(it2._emoji||typeEmoji(it2.type))+'</div><div class="result-body"><div class="result-name">'+esc(it2.name)+'</div>'+(it2.detail?'<div class="result-detail">'+esc(it2.detail)+'</div>':'')+'</div><div class="result-type">'+esc(it2.type||'место')+'</div></div>'}}
 el.innerHTML=html;el.classList.add('show');
 var nodes=el.querySelectorAll('.result-item');
-for(var n=0;n<nodes.length;n++){(function(node){node.onclick=function(){var idx=parseInt(node.getAttribute('data-idx'),10);pickResult(items[idx])}})(nodes[n])}}
+for(var n=0;n<nodes.length;n++){(function(node,item){node.onclick=function(){pickResult(item)}})(nodes[n],flat[n])}}
 function pickResult(it){if(!it)return;applyLocation(it.lat,it.lon,it.name,'search');document.getElementById('searchInput').value=it.name;document.getElementById('searchClear').classList.add('show');document.getElementById('searchResults').classList.remove('show')}
 async function runNominatimSearch(q,localItems){if(searchAbort)searchAbort.abort();var ctrl=new AbortController();searchAbort=ctrl;
 try{var url='https://nominatim.openstreetmap.org/search?format=jsonv2&q='+encodeURIComponent(q)+'&limit=8&accept-language=ru&addressdetails=1';var r=await fetch(url,{signal:ctrl.signal,cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);var data=await r.json();var remote=[];
@@ -472,17 +508,17 @@ cityNameEl.textContent='Определяю...';coordsEl.textContent='';
 navigator.geolocation.getCurrentPosition(function(pos){var la=pos.coords.latitude,lo=pos.coords.longitude;if(!validCoord(la,lo)){alert('GPS вернул некорректные координаты');return}
 lat=la;lon=lo;updateCoords();geoBox.innerHTML='';document.getElementById('searchResults').classList.remove('show');setActiveMode('gps');loadWeather(true);
 if(inSpbBox(lat,lon)){cityNameEl.textContent='Санкт-Петербург';document.getElementById('searchInput').value='Санкт-Петербург';document.getElementById('searchClear').classList.add('show');addToHistory({name:'Санкт-Петербург',lat:lat,lon:lon})}else{reverseGeocode(lat,lon,function(name){cityNameEl.textContent=name;document.getElementById('searchInput').value=name;document.getElementById('searchClear').classList.add('show');addToHistory({name:name,lat:lat,lon:lon})})}
-},function(err){if(err.code===1)checkGeoPerm(function(s){renderGeoBox(s)});else alert('Не удалось определить')},{enableHighAccuracy:true,timeout:12000,maximumAge:60000})}
+},function(err){if(err.code===1)checkGeoPerm(function(s){renderGeoBox(s)});else alert('Не удалось определить')},{enableHighAccuracy:true,timeout:15000,maximumAge:60000})}
 function reverseGeocode(la,lo,cb){var key=GEO_PREFIX+la.toFixed(3)+'_'+lo.toFixed(3);try{var c=localStorage.getItem(key);if(c){var p=JSON.parse(c);if(p&&p.n&&Date.now()-p.ts<86400000){cb(p.n);return}}}catch(e){}
 var url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+la+'&lon='+lo+'&zoom=10&accept-language=ru';
 fetch(url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){var n='Моё местоположение';if(d&&d.address){var a=d.address;n=a.city||a.town||a.village||a.municipality||a.county||a.state||n}try{localStorage.setItem(key,JSON.stringify({n:n,ts:Date.now()}))}catch(e){}cb(n)}).catch(function(){cb('Моё местоположение')})}
 
 /* ============ ЗАПРОС ПОГОДЫ ============ */
-/* Рабочая схема — только прямой запрос к Open-Meteo.
-   Без forecast_hours! Он не совместим с forecast_days=7.
-   Почасовой прогноз режется на клиенте до 48 часов. */
+/* Без AbortController! Он даёт NS_BINDING_ABORTED.
+   Вместо этого Promise.race с таймаутом — просто перестаём ждать.
+   Запрос может продолжиться в фоне, но нас это не волнует. */
 
-function buildWeatherUrl(){
+function buildBaseUrl(){
   return 'https://api.open-meteo.com/v1/forecast'
     +'?latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4)
     +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,'
@@ -493,90 +529,120 @@ function buildWeatherUrl(){
     +'&timezone=auto&forecast_days=7';
 }
 
-async function fetchWithTimeout(url,ms){
-  var ctrl=new AbortController();
-  var timer=setTimeout(function(){try{ctrl.abort()}catch(e){}},ms);
-  try{
-    var r=await fetch(url,{signal:ctrl.signal,cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    var d=await r.json();
-    if(d && d.reason) throw new Error(d.reason);
-    if(!d.current || !d.hourly || !d.daily) throw new Error('Некорректный ответ');
-    return d;
-  } finally { clearTimeout(timer) }
+function getFetchUrl(){
+  var base=buildBaseUrl();
+  if(USE_PROXY && PROXY_URL){
+    return PROXY_URL+encodeURIComponent(base);
+  }
+  return base;
+}
+
+function fetchWithRace(url,ms){
+  return new Promise(function(resolve,reject){
+    var done=false;
+    var timer=setTimeout(function(){
+      if(done)return;
+      done=true;
+      reject(new Error('timeout: '+ms+'мс'));
+    },ms);
+
+    fetch(url,{cache:'no-store'})
+      .then(function(r){
+        if(done)return;
+        if(!r.ok){
+          done=true;clearTimeout(timer);
+          reject(new Error('HTTP '+r.status));
+          return;
+        }
+        return r.json();
+      })
+      .then(function(d){
+        if(done||!d)return;
+        done=true;clearTimeout(timer);
+        if(d.reason){reject(new Error(d.reason));return;}
+        if(!d.current||!d.hourly||!d.daily){reject(new Error('Некорректный ответ'));return;}
+        resolve(d);
+      })
+      .catch(function(e){
+        if(done)return;
+        done=true;clearTimeout(timer);
+        reject(e);
+      });
+  });
 }
 
 async function fetchWeather(){
-  var baseUrl = buildWeatherUrl();
-
-  // Попытка 1: прямой запрос к Open-Meteo (самый быстрый, работает везде без расширений)
+  var url=getFetchUrl();
+  var usingProxy=USE_PROXY&&PROXY_URL;
+  console.log('[Weather] Запрос '+(usingProxy?'через прокси':'напрямую')+', таймаут '+FETCH_TIMEOUT+'мс');
+  var t0=Date.now();
   try{
-    console.log('[Weather] Прямой запрос...');
-    return await fetchWithTimeout(baseUrl, FETCH_TIMEOUT);
+    var d=await fetchWithRace(url,FETCH_TIMEOUT);
+    lastFetchMs=Date.now()-t0;
+    console.log('[Weather] ✓ OK за '+lastFetchMs+' мс');
+    return d;
   }catch(e){
-    console.warn('[Weather] Прямой упал:', e.name, e.message);
-  }
-
-  // Попытка 2: через allorigins (отдаёт JSON с CORS)
-  try{
-    console.log('[Weather] Через allorigins...');
-    var url2='https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl);
-    return await fetchWithTimeout(url2, FETCH_TIMEOUT);
-  }catch(e){
-    console.warn('[Weather] allorigins упал:', e.name, e.message);
-  }
-
-  // Попытка 3: через codetabs
-  try{
-    console.log('[Weather] Через codetabs...');
-    var url3='https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(baseUrl);
-    return await fetchWithTimeout(url3, FETCH_TIMEOUT);
-  }catch(e){
-    console.warn('[Weather] codetabs упал:', e.name, e.message);
-    throw new Error('Все источники недоступны: '+e.message);
+    lastFetchMs=Date.now()-t0;
+    console.warn('[Weather] ✗ Провал за '+lastFetchMs+' мс:',e.message);
+    throw e;
   }
 }
 
 /* ============ ДИАГНОСТИКА ============ */
 async function diagnose(){
   errorBox.style.display='block';
-  errorBox.innerHTML='<b>Диагностика…</b>';
+  errorBox.innerHTML='<b>Проверяю соединение…</b><br><span style="font-size:12px;opacity:.8">Это займёт до 30 секунд.</span>';
   var lines=[];
   var online=navigator.onLine;
   lines.push('Интернет: <b style="color:'+(online?'#4ad9a0':'#ff7a7a')+'">'+(online?'есть':'НЕТ')+'</b>');
+  if(USE_PROXY) lines.push('Прокси: <b style="color:#5eb8ff">включён</b>');
 
-  // Проверка 1: простой запрос к Open-Meteo напрямую
+  // 1) Маленький запрос
+  var t0=Date.now();
   try{
-    var ctrl=new AbortController();
-    var t=setTimeout(function(){try{ctrl.abort()}catch(e){}},6000);
-    var r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.94&longitude=30.31&current=temperature_2m',{signal:ctrl.signal,cache:'no-store'});
-    clearTimeout(t);
-    lines.push('Open-Meteo напрямую: <b style="color:#4ad9a0">✓ OK '+r.status+'</b>');
+    var r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.94&longitude=30.31&current=temperature_2m',{cache:'no-store'});
+    var dt=Date.now()-t0;
+    if(r.ok){
+      var d=await r.json();
+      lines.push('Open-Meteo маленький: <b style="color:#4ad9a0">✓ '+dt+' мс</b>, темп '+Math.round(d.current.temperature_2m)+'°C');
+    }else{
+      lines.push('Open-Meteo маленький: <b style="color:#ff7a7a">✗ HTTP '+r.status+' за '+dt+'мс</b>');
+    }
   }catch(e){
-    lines.push('Open-Meteo напрямую: <b style="color:#ff7a7a">✗ '+esc(e.name)+'</b>');
+    var dt=Date.now()-t0;
+    lines.push('Open-Meteo маленький: <b style="color:#ff7a7a">✗ '+esc(e.name)+' за '+dt+'мс</b>');
   }
 
-  // Проверка 2: через allorigins
+  // 2) Полный запрос
+  var t1=Date.now();
   try{
-    var r2=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent('https://api.open-meteo.com/v1/forecast?latitude=59.94&longitude=30.31&current=temperature_2m'),{cache:'no-store'});
-    lines.push('Через allorigins: <b style="color:'+(r2.ok?'#4ad9a0':'#ff7a7a')+'">'+(r2.ok?'✓':'✗')+' HTTP '+r2.status+'</b>');
+    var r2=await fetch(buildBaseUrl(),{cache:'no-store'});
+    var dt2=Date.now()-t1;
+    if(r2.ok){
+      lines.push('Open-Meteo полный: <b style="color:#4ad9a0">✓ '+dt2+' мс</b>');
+    }else{
+      lines.push('Open-Meteo полный: <b style="color:#ff7a7a">✗ HTTP '+r2.status+' за '+dt2+'мс</b>');
+    }
   }catch(e){
-    lines.push('Через allorigins: <b style="color:#ff7a7a">✗ '+esc(e.name)+'</b>');
+    var dt2=Date.now()-t1;
+    lines.push('Open-Meteo полный: <b style="color:#ff7a7a">✗ '+esc(e.name)+' за '+dt2+'мс</b>');
   }
 
-  // Проверка 3: поиск Nominatim
+  // 3) Nominatim
   try{
     var r3=await fetch('https://nominatim.openstreetmap.org/search?format=json&q=spb&limit=1',{cache:'no-store'});
-    lines.push('Nominatim (поиск): <b style="color:'+(r3.ok?'#4ad9a0':'#ff7a7a')+'">'+(r3.ok?'✓':'✗')+' HTTP '+r3.status+'</b>');
+    lines.push('Nominatim (поиск): <b style="color:'+(r3.ok?'#4ad9a0':'#ff7a7a')+'">'+(r3.ok?'✓ OK':'✗ HTTP '+r3.status)+'</b>');
   }catch(e){
     lines.push('Nominatim (поиск): <b style="color:#ff7a7a">✗ '+esc(e.name)+'</b>');
   }
 
   errorBox.innerHTML='<b>Результат диагностики</b>'
     +'<div style="font-size:12.5px;margin-top:8px;line-height:1.9">'+lines.join('<br>')+'</div>'
-    +'<div style="font-size:12px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);opacity:.85">'
-    +'<b>Если «Open-Meteo напрямую» упал, но «allorigins» работает</b> — у тебя блокируется прямой запрос (расширение/антивирус). Отключи uBlock Origin / AdGuard для этого сайта.<br><br>'
-    +'<b>Если всё упало</b> — проверь интернет или попробуй через VPN.</div>'
+    +'<div style="font-size:12px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);opacity:.85;line-height:1.7">'
+    +'<b>Что это значит:</b><br>'
+    +'• Оба запроса &lt;2с — всё ОК, попробуй обновить ещё раз.<br>'
+    +'• Маленький &lt;3с, полный &gt;15с — интернет медленный, жди (таймаут 30с).<br>'
+    +'• Оба висят / падают — <b>api.open-meteo.com недоступен</b>. Включи VPN или настрой Cloudflare Worker (см. комментарий в начале скрипта).</div>'
     +'<button onclick="loadWeather(true)">Попробовать снова</button>'
     +'<button onclick="location.reload()">Перезагрузить</button>';
 }
@@ -740,7 +806,7 @@ html+='</div>';document.getElementById('fishing').innerHTML=html}
 
 /* ============ MAIN ============ */
 async function loadWeather(force){
-  if(isLoading){return}
+  if(isLoading){console.log('[Weather] Уже идёт загрузка, пропускаю');return}
   if(!force&&document.hidden)return;
   if(!force&&lastUpdateMs&&(Date.now()-lastUpdateMs)<FETCH_INTERVAL){updateLastUpdated();return}
   isLoading=true;
@@ -748,13 +814,14 @@ async function loadWeather(force){
   updateDate();updateClock();
   errorBox.style.display='none';
   statusBox.innerHTML='';
-  refreshBtn.textContent='…';
+  refreshBtn.textContent='Загрузка…';
 
   var data=null;
   var lastErr=null;
   try{data=await fetchWeather()}
   catch(e){
-    if(e.name!=='AbortError'){lastErr=e;console.warn('[Weather]',e.name,e.message)}
+    lastErr=e;
+    console.warn('[Weather]',e.name,e.message);
   }
   if(tok!==reqToken){isLoading=false;refreshBtn.textContent='↻ Обновить';return}
   if(!data){
@@ -771,7 +838,9 @@ async function loadWeather(force){
     }
     errorBox.style.display='block';
     errorBox.innerHTML='<b>Не удалось загрузить погоду</b>'
-      +'<div style="font-size:12px;margin-top:6px;opacity:.85">Причина: '+esc(lastErr?lastErr.message:'неизвестная ошибка')+'</div>'
+      +'<div style="font-size:12px;margin-top:6px;opacity:.85">Причина: '+esc(lastErr?lastErr.message:'неизвестная ошибка')
+      +' · потрачено '+Math.round(lastFetchMs/1000)+' сек</div>'
+      +'<div style="font-size:12px;margin-top:8px;opacity:.85">Скорее всего api.open-meteo.com недоступен. Нажми «Диагностика».</div>'
       +'<button onclick="diagnose()">Диагностика</button>'
       +'<button onclick="loadWeather(true)">Попробовать снова</button>';
     return;
@@ -780,7 +849,7 @@ async function loadWeather(force){
   refreshBtn.textContent='↻ Обновить';
   lastData=data;lastUpdateMs=Date.now();lastHourRendered='';
   try{renderAll(data,false)}catch(e){console.warn('renderAll:',e.message)}
-  updateCoords();saveCache(data,'Open-Meteo');updateLastUpdated();
+  updateCoords();saveCache(data,USE_PROXY?'Прокси':'Open-Meteo');updateLastUpdated();
 }
 
 /* ============ TICK ============ */

@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#070b14" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#e8edf3" media="(prefers-color-scheme: light)">
-<meta name="color-scheme" content="dark light">
 <title>Weather Pro</title>
 <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
 <link rel="preconnect" href="https://nominatim.openstreetmap.org" crossorigin>
@@ -41,7 +41,7 @@
 body{min-height:100vh;background:linear-gradient(160deg,var(--bg-2),var(--bg-1) 60%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",Roboto,Arial,sans-serif;display:flex;justify-content:center;align-items:flex-start;padding:20px 14px 80px;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background .3s ease}
 .container{width:100%;max-width:720px;display:flex;flex-direction:column;gap:14px}
 .card{background:var(--card-bg);border:1px solid var(--border);border-radius:22px;padding:22px 24px;backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.05);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;transition:border-color .3s ease}
-.card:hover{border-color:var(--border-hi)}
+@media(hover:hover){.card:hover{border-color:var(--border-hi)}}
 
 .search-wrap{position:relative;z-index:50}
 .search-bar{display:flex;gap:8px}
@@ -85,11 +85,13 @@ body{min-height:100vh;background:linear-gradient(160deg,var(--bg-2),var(--bg-1) 
 .clock-updated{font-size:11px;color:var(--mute);margin-top:3px}
 
 .toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
-.btn{padding:11px 14px;background:var(--card-hi);border:1px solid var(--border);border-radius:14px;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;touch-action:manipulation;transition:all .2s ease}
+.btn{padding:11px 14px;background:var(--card-hi);border:1px solid var(--border);border-radius:14px;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;touch-action:manipulation;transition:all .2s ease;position:relative}
 .btn:hover{border-color:var(--border-hi);transform:translateY(-1px)}
 .btn:active{transform:scale(.97)}
 .btn.active{background:rgba(94,184,255,.18);border-color:var(--border-hi);color:var(--accent);font-weight:700}
 .btn.primary{background:linear-gradient(135deg,rgba(94,184,255,.15),rgba(124,140,255,.08));border-color:var(--border-hi);color:var(--accent)}
+.btn.spinning{pointer-events:none;opacity:.7}
+.btn.spinning::after{content:"";position:absolute;right:12px;top:50%;width:12px;height:12px;margin-top:-6px;border:2px solid var(--border-hi);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 
 .current-hero{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
 .hero-icon{width:100px;height:100px}
@@ -245,7 +247,7 @@ body{padding:14px 10px 60px}
 </div>
 
 <div class="card">
-<div class="section-title">Почасовой прогноз · 7 дней</div>
+<div class="section-title">Почасовой прогноз</div>
 <div id="hourly" class="hourly-scroll"><div class="loading">Загрузка...</div></div>
 </div>
 
@@ -283,11 +285,17 @@ try{console.log('%c⚠️ СТОП, ИШАК','color:#ff7a7a;font-size:32px;font
 })();
 
 /* ============ КОНСТАНТЫ ============ */
+var DEBUG=false;
+try{DEBUG=localStorage.getItem('wx_debug')==='1'}catch(e){}
+function dbg(){if(!DEBUG)return;try{console.log.apply(console,arguments)}catch(e){}}
+function dbgw(){if(!DEBUG)return;try{console.warn.apply(console,arguments)}catch(e){}}
+
 var SPB_LAT=59.9386,SPB_LON=30.3141;
 var SPB_BBOX={minLat:59.60,maxLat:60.35,minLon:29.30,maxLon:30.90};
 var lat=SPB_LAT,lon=SPB_LON;
-var CACHE_KEY='wp_v8',LOCS_KEY='wl_v8',HIST_KEY='wh_v8',GEO_PREFIX='wg_';
-var REFRESH_MS=600000,TICK_MS=30000,TIMEOUT=10000;
+var CACHE_KEY='wp_v9',LOCS_KEY='wl_v9',HIST_KEY='wh_v9',GEO_PREFIX='wg_';
+var REFRESH_MS=600000,TICK_MS=30000;
+var MODEL_TIMEOUT=12000,BEST_TIMEOUT=10000;
 
 var cityNameEl=document.getElementById('cityName'),coordsEl=document.getElementById('coords');
 var statusBox=document.getElementById('statusBox'),errorBox=document.getElementById('errorBox');
@@ -295,7 +303,7 @@ var geoBox=document.getElementById('geoBox'),refreshBtn=document.getElementById(
 var btnGps=document.getElementById('btnGps'),btnSpb=document.getElementById('btnSpb');
 
 var lastData=null,lastUpdateMs=0,lastHourRendered='',lastTemp=null,reqToken=0;
-var locations=[],currentLocIdx=0,searchAbort=null;
+var locations=[],currentLocIdx=0,searchAbort=null,searchTimer=null;
 var activeLocMode='spb';
 
 /* ============ БАЗА МЕСТ ============ */
@@ -381,6 +389,7 @@ function inSpbBox(la,lo){return la>=SPB_BBOX.minLat&&la<=SPB_BBOX.maxLat&&lo>=SP
 function safeDate(str){if(!str)return null;var p=String(str).split('-');if(p.length<3)return null;var y=parseInt(p[0],10),m=parseInt(p[1],10),d=parseInt(p[2],10);if(isNaN(y)||isNaN(m)||isNaN(d))return null;return new Date(y,m-1,d)}
 function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fetchT(url,ms){return new Promise(function(resolve,reject){var done=false;var t=setTimeout(function(){if(done)return;done=true;reject(new Error('timeout'))},ms);fetch(url,{cache:'no-store'}).then(function(r){if(done)return;done=true;clearTimeout(t);resolve(r)}).catch(function(e){if(done)return;done=true;clearTimeout(t);reject(e)})})}
+function withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'))},ms)})])}
 function hPaToMmHg(hPa){return isNum(hPa)?Math.round(hPa*0.750062):null}
 
 /* ============ SVG ИКОНКИ ============ */
@@ -453,7 +462,6 @@ function searchPresets(q){var nq=normalizeStr(q);if(!nq)return[];var words=nq.sp
 if(match)res.push(p)}return res.slice(0,15)}
 function typeEmoji(type){if(type==='река')return'🌊';if(type==='озеро')return'💧';if(type==='залив')return'⚓';if(type==='город')return'🏙';if(type==='регион')return'📍';return'📌'}
 
-var searchTimer=null;
 function onSearchInput(){var v=document.getElementById('searchInput').value;document.getElementById('searchClear').classList.toggle('show',v.length>0);clearTimeout(searchTimer);if(v.length===0){document.getElementById('searchResults').classList.remove('show');return}
 if(v.length<2)return;var local=searchPresets(v);if(local.length)renderResults(local,true);searchTimer=setTimeout(function(){runNominatimSearch(v,local)},350)}
 function doSearchNow(){var v=document.getElementById('searchInput').value.trim();if(!v)return;document.getElementById('searchClear').classList.add('show');var local=searchPresets(v);if(local.length)renderResults(local,true);runNominatimSearch(v,local)}
@@ -462,11 +470,13 @@ function renderResults(items,isLocal){var el=document.getElementById('searchResu
 return}
 var groups={},order=[];for(var i=0;i<items.length;i++){var it=items[i];if(!validCoord(it.lat,it.lon))continue;var g=it.group||it.type||'Результаты';if(!groups[g]){groups[g]=[];order.push(g)}
 groups[g].push(it)}
-var html='';for(var gi=0;gi<order.length;gi++){var g=order[gi];var arr=groups[g];if(order.length>1&&arr.length>1){html+='<div class="result-group-label">'+esc(g)+'</div>'}
-for(var k=0;k<arr.length;k++){var it2=arr[k];var idx=items.indexOf(it2);html+='<div class="result-item" onclick=\'pickResult('+idx+')\'><div class="result-icon">'+(it2._emoji||typeEmoji(it2.type))+'</div><div class="result-body"><div class="result-name">'+esc(it2.name)+'</div>'+(it2.detail?'<div class="result-detail">'+esc(it2.detail)+'</div>':'')+'</div><div class="result-type">'+esc(it2.type||'место')+'</div></div>'}}
-el.innerHTML=html;el.classList.add('show');window.__results=items}
+var html='';var flat=[];for(var gi=0;gi<order.length;gi++){var g=order[gi];var arr=groups[g];if(order.length>1&&arr.length>1){html+='<div class="result-group-label">'+esc(g)+'</div>'}
+for(var k=0;k<arr.length;k++){var it2=arr[k];var idx=flat.length;flat.push(it2);html+='<div class="result-item" data-idx="'+idx+'"><div class="result-icon">'+(it2._emoji||typeEmoji(it2.type))+'</div><div class="result-body"><div class="result-name">'+esc(it2.name)+'</div>'+(it2.detail?'<div class="result-detail">'+esc(it2.detail)+'</div>':'')+'</div><div class="result-type">'+esc(it2.type||'место')+'</div></div>'}}
+el.innerHTML=html;el.classList.add('show');
+var nodes=el.querySelectorAll('.result-item');
+for(var n=0;n<nodes.length;n++){(function(node,item){node.onclick=function(){pickResult(item)}})(nodes[n],flat[n])}}
 
-function pickResult(i){var items=window.__results||[];var it=items[i];if(!it)return;applyLocation(it.lat,it.lon,it.name,'search');document.getElementById('searchInput').value=it.name;document.getElementById('searchClear').classList.add('show');document.getElementById('searchResults').classList.remove('show')}
+function pickResult(it){if(!it)return;applyLocation(it.lat,it.lon,it.name,'search');document.getElementById('searchInput').value=it.name;document.getElementById('searchClear').classList.add('show');document.getElementById('searchResults').classList.remove('show')}
 
 async function runNominatimSearch(q,localItems){if(searchAbort)searchAbort.abort();var ctrl=new AbortController();searchAbort=ctrl;
 try{var url='https://nominatim.openstreetmap.org/search?format=jsonv2&q='+encodeURIComponent(q)+'&limit=8&accept-language=ru&addressdetails=1';var r=await fetchT(url,8000);var data=await r.json();var remote=[];
@@ -484,7 +494,7 @@ document.getElementById('searchInput').addEventListener('keydown',function(e){if
 document.addEventListener('click',function(e){var w=document.querySelector('.search-wrap');if(w&&!w.contains(e.target)){document.getElementById('searchResults').classList.remove('show')}});
 
 /* ============ GEO ============ */
-function checkGeoPerm(cb){if(!navigator.permissions||!navigator.permissions.query){cb('unknown');return}navigator.permissions.query({name:'geolocation'}).then(function(p){cb(p.state);p.onchange=function(){checkGeoPerm(cb)}}).catch(function(){cb('unknown')})}
+function checkGeoPerm(cb){if(!navigator.permissions||!navigator.permissions.query){cb('prompt');return}navigator.permissions.query({name:'geolocation'}).then(function(p){cb(p.state)}).catch(function(){cb('prompt')})}
 function renderGeoBox(state){if(state==='denied'){geoBox.innerHTML='<div class="card notice warn"><b>Геолокация отключена</b><br>iPhone: Настройки → Safari → Геопозиция → Разрешить.<br>Android: Настройки браузера → Разрешения → Геолокация → Разрешить.<button onclick="retryGeo()">Проверить снова</button></div>'}else{geoBox.innerHTML=''}}
 function retryGeo(){checkGeoPerm(function(s){renderGeoBox(s);if(s==='granted')detectLocation()})}
 function detectLocation(){if(!navigator.geolocation){alert('Геолокация не поддерживается');return}
@@ -496,67 +506,43 @@ if(inSpbBox(lat,lon)){cityNameEl.textContent='Санкт-Петербург';doc
 function reverseGeocode(la,lo,cb){var key=GEO_PREFIX+la.toFixed(3)+'_'+lo.toFixed(3);try{var c=localStorage.getItem(key);if(c){var p=JSON.parse(c);if(p&&p.n&&Date.now()-p.ts<86400000){cb(p.n);return}}}catch(e){}
 var url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+la+'&lon='+lo+'&zoom=10&accept-language=ru';fetchT(url,4000).then(function(r){return r.json()}).then(function(d){var n='Моё местоположение';if(d&&d.address){var a=d.address;n=a.city||a.town||a.village||a.municipality||a.county||a.state||n}try{localStorage.setItem(key,JSON.stringify({n:n,ts:Date.now()}))}catch(e){}cb(n)}).catch(function(){cb('Моё местоположение')})}
 
-/* ============ ЗАПРОС ПОГОДЫ (3 модели параллельно) ============ */
+/* ============ ЗАПРОС ПОГОДЫ ============ */
 async function fetchOneModel(model){
 var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon
 +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,uv_index,cloud_cover,dew_point_2m,precipitation'
 +'&hourly=temperature_2m,weather_code,precipitation_probability,pressure_msl'
 +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'
-+'&timezone=auto&forecast_days=7&forecast_hours=168';
++'&timezone=auto&forecast_days=7&forecast_hours=48';
 if(model&&model!=='best_match')url+='&models='+model;
-var r=await fetchT(url,TIMEOUT);
+var r=await fetchT(url,MODEL_TIMEOUT);
 if(!r.ok)throw new Error('HTTP '+r.status);
 var d=await r.json();
 if(d.reason)throw new Error(d.reason);
+if(!d.current||!d.hourly||!d.daily)throw new Error('bad payload');
 return d}
 
 async function fetchWeather(){
-var results=await Promise.all([
-fetchOneModel('ecmwf_ifs04').catch(function(){return null}),
-fetchOneModel('icon_seamless').catch(function(){return null}),
-fetchOneModel('gfs_seamless').catch(function(){return null})
-]);
-var ok=results.filter(function(r){return r!==null});
-if(ok.length===0){console.warn('Все модели упали, пробую best_match');return await fetchOneModel('best_match')}
-if(ok.length===1)return ok[0];
-return blendWeather(ok)}
-
-function blendWeather(models){
-var n=models.length,base=models[0];
-function wavg(field){var s=0,cnt=0;for(var i=0;i<n;i++){var v=field(models[i]);if(isNum(v)){s+=v;cnt++}}return cnt?s/cnt:null}
-function worst(field){var codes=[];for(var i=0;i<n;i++){var v=field(models[i]);if(isNum(v))codes.push(v)}var w=0;for(var k=0;k<codes.length;k++)if(severity(codes[k])>severity(w))w=codes[k];return w}
-var current={time:base.current.time,
-temperature_2m:wavg(function(m){return m.current.temperature_2m}),
-apparent_temperature:wavg(function(m){return m.current.apparent_temperature}),
-relative_humidity_2m:wavg(function(m){return m.current.relative_humidity_2m}),
-wind_speed_10m:wavg(function(m){return m.current.wind_speed_10m}),
-wind_gusts_10m:wavg(function(m){return m.current.wind_gusts_10m}),
-wind_direction_10m:base.current.wind_direction_10m,
-pressure_msl:wavg(function(m){return m.current.pressure_msl}),
-uv_index:wavg(function(m){return m.current.uv_index}),
-cloud_cover:wavg(function(m){return m.current.cloud_cover}),
-dew_point_2m:wavg(function(m){return m.current.dew_point_2m}),
-precipitation:wavg(function(m){return m.current.precipitation}),
-weather_code:worst(function(m){return m.current.weather_code})};
-var hLen=base.hourly.time.length;
-var hourly={time:[],temperature_2m:[],weather_code:[],precipitation_probability:[],pressure_msl:[]};
-for(var hi=0;hi<hLen;hi++){
-hourly.time.push(base.hourly.time[hi]);
-hourly.temperature_2m.push(wavg((function(i){return function(m){return m.hourly.temperature_2m?m.hourly.temperature_2m[i]:null}})(hi)));
-hourly.precipitation_probability.push(wavg((function(i){return function(m){return m.hourly.precipitation_probability?m.hourly.precipitation_probability[i]:0}})(hi)));
-hourly.pressure_msl.push(wavg((function(i){return function(m){return m.hourly.pressure_msl?m.hourly.pressure_msl[i]:null}})(hi)));
-hourly.weather_code.push(worst((function(i){return function(m){return m.hourly.weather_code?m.hourly.weather_code[i]:0}})(hi)))}
-var dLen=base.daily.time.length;
-var daily={time:[],weather_code:[],temperature_2m_max:[],temperature_2m_min:[],precipitation_probability_max:[],sunrise:[],sunset:[]};
-for(var di=0;di<dLen;di++){
-daily.time.push(base.daily.time[di]);
-daily.temperature_2m_max.push(wavg((function(i){return function(m){return m.daily.temperature_2m_max?m.daily.temperature_2m_max[i]:null}})(di)));
-daily.temperature_2m_min.push(wavg((function(i){return function(m){return m.daily.temperature_2m_min?m.daily.temperature_2m_min[i]:null}})(di)));
-daily.precipitation_probability_max.push(wavg((function(i){return function(m){return m.daily.precipitation_probability_max?m.daily.precipitation_probability_max[i]:0}})(di)));
-daily.weather_code.push(worst((function(i){return function(m){return m.daily.weather_code?m.daily.weather_code[i]:0}})(di)));
-daily.sunrise.push(base.daily.sunrise[di]);
-daily.sunset.push(base.daily.sunset[di])}
-return{current:current,hourly:hourly,daily:daily}}
+// ECMWF и ICON параллельно. Кто первый валидный — того и взяли.
+var racers=[
+  withTimeout(fetchOneModel('ecmwf_ifs04'),MODEL_TIMEOUT),
+  withTimeout(fetchOneModel('icon_seamless'),MODEL_TIMEOUT)
+];
+try{
+  var winner=await Promise.any(racers);
+  dbg('Модель ответила:',winner.current&&winner.current.time);
+  return winner;
+}catch(e){
+  dbgw('ECMWF+ICON упали:',e&&e.message);
+}
+// Первый резерв — best_match (микс, почти всегда жив)
+try{
+  var bm=await withTimeout(fetchOneModel('best_match'),BEST_TIMEOUT);
+  dbg('best_match OK');
+  return bm;
+}catch(e){dbgw('best_match упал:',e&&e.message)}
+// Последний шанс — GFS
+dbgw('Пробую GFS как последний резерв');
+return await withTimeout(fetchOneModel('gfs_seamless'),BEST_TIMEOUT)}
 
 /* ============ RENDER ============ */
 function renderAll(data,isCached){
@@ -594,7 +580,7 @@ function renderHourly(data){if(!data.hourly||!data.hourly.time){document.getElem
 var key=(data.current.time||'').slice(0,13)||nowHourKey();var start=0;
 for(var i=0;i<data.hourly.time.length;i++){if((data.hourly.time[i]||'').slice(0,13)>=key){start=i;break}}
 var el=document.getElementById('hourly');var sp=el.scrollLeft;var html='',count=0;
-for(var j=start;j<data.hourly.time.length&&count<168;j++){var t=data.hourly.time[j];var tt=data.hourly.temperature_2m[j];var cc=data.hourly.weather_code[j];var rr=data.hourly.precipitation_probability[j];var timeStr=(t||'').slice(11,16);var isNow=(count===0);
+for(var j=start;j<data.hourly.time.length&&count<48;j++){var t=data.hourly.time[j];var tt=data.hourly.temperature_2m[j];var cc=data.hourly.weather_code[j];var rr=data.hourly.precipitation_probability[j];var timeStr=(t||'').slice(11,16);var isNow=(count===0);
 html+='<div class="hour-cell'+(isNow?' now':'')+'"><div class="time">'+(isNow?'Сейчас':timeStr)+'</div><div class="icon">'+svgIcon(fixCode(cc,tt))+'</div><div class="temp">'+fmt(tt,'°')+'</div><div class="rain">'+fmt(rr,'%')+'</div></div>';count++}
 el.innerHTML=html||'<div class="loading">Нет данных</div>';el.scrollLeft=sp;lastHourRendered=key}
 
@@ -618,7 +604,14 @@ document.getElementById('moonBlock').innerHTML='<div class="moon-svg">'+svg+'</d
 /* ============ HINTS ============ */
 function uvHint(uv){if(!isNum(uv))return'--';if(uv<3)return'Низкий';if(uv<6)return'Умеренный, SPF 15+';if(uv<8)return'Высокий, SPF 30+';if(uv<11)return'Очень высокий';return'Экстремальный'}
 function windDir(d){if(!isNum(d))return'';var dirs=['С','СВ','В','ЮВ','Ю','ЮЗ','З','СЗ'];return dirs[Math.round(d/45)%8]}
-function pressureTrend(hourly){if(!hourly||!hourly.pressure_msl)return{text:'',hint:''};var a=hourly.pressure_msl.slice(0,4).filter(isNum);if(a.length<2)return{text:'',hint:''};var diff=a[a.length-1]-a[0];if(Math.abs(diff)<0.8)return{text:'→',hint:'Стабильное'};if(diff>0)return{text:'↑',hint:'Растёт'};return{text:'↓',hint:'Падает'}}
+function pressureTrend(hourly){
+if(!hourly||!hourly.pressure_msl||hourly.pressure_msl.length<4)return{text:'',hint:''};
+var a=hourly.pressure_msl.slice(0,4).filter(isNum);
+if(a.length<2)return{text:'',hint:''};
+var diff=a[a.length-1]-a[0];
+if(Math.abs(diff)<0.8)return{text:'→',hint:'Стабильное'};
+if(diff>0)return{text:'↑',hint:'Растёт'};
+return{text:'↓',hint:'Падает'}}
 function cloudsHint(c){if(!isNum(c))return'';if(c<15)return'Ясно';if(c<40)return'Небольшая';if(c<70)return'Значительная';return'Сплошная'}
 
 /* ============ MOON ============ */
@@ -687,11 +680,29 @@ html+='</div>';document.getElementById('fishing').innerHTML=html}
 /* ============ MAIN ============ */
 async function loadWeather(force){if(!force&&document.hidden)return;if(!force&&lastUpdateMs&&(Date.now()-lastUpdateMs)<300000){updateLastUpdated();return}
 reqToken++;var tok=reqToken;updateDate();updateClock();errorBox.style.display='none';statusBox.innerHTML='';refreshBtn.classList.add('spinning');
-var result=null;try{result=await fetchWeather()}catch(e){console.error('Fetch:',e.message)}
+var result=null;
+try{result=await fetchWeather()}catch(e){dbgw('Fetch total fail:',e&&e.message)}
 if(tok!==reqToken){refreshBtn.classList.remove('spinning');return}
-if(!result){refreshBtn.classList.remove('spinning');var cached=loadCache();if(cached){var age=Math.round((Date.now()-cached.ts)/60000);if(cached.city)cityNameEl.textContent=cached.city;lastData=cached.d;lastUpdateMs=cached.ts;renderAll(cached.d,true);updateCoords();statusBox.innerHTML='<div class="card notice warn">Нет связи. Данные '+age+' мин назад.</div>'}else{errorBox.style.display='block';errorBox.textContent='Не удалось получить данные. Проверь интернет.'}
-return}
-refreshBtn.classList.remove('spinning');lastData=result;lastUpdateMs=Date.now();lastHourRendered='';renderAll(result,false);updateCoords();saveCache(result,'Open-Meteo x3');updateLastUpdated()}
+if(!result){
+  refreshBtn.classList.remove('spinning');
+  var cached=loadCache();
+  if(cached){
+    var age=Math.round((Date.now()-cached.ts)/60000);
+    if(cached.city)cityNameEl.textContent=cached.city;
+    lastData=cached.d;lastUpdateMs=cached.ts;
+    try{renderAll(cached.d,true)}catch(e){dbgw('render cache err',e)}
+    updateCoords();
+    statusBox.innerHTML='<div class="card notice warn">Нет связи. Данные '+age+' мин назад.</div>';
+  }else{
+    errorBox.style.display='block';
+    errorBox.textContent='Не удалось получить данные. Проверь интернет.';
+  }
+  return;
+}
+refreshBtn.classList.remove('spinning');
+lastData=result;lastUpdateMs=Date.now();lastHourRendered='';
+try{renderAll(result,false)}catch(e){dbgw('render err',e);errorBox.style.display='block';errorBox.textContent='Ошибка отрисовки данных.'}
+updateCoords();saveCache(result,'Open-Meteo');updateLastUpdated()}
 
 /* ============ TICK ============ */
 function tick(){updateClock();updateDate();updateLastUpdated();
